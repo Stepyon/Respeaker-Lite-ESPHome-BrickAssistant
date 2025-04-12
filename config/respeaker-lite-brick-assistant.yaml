@@ -2,7 +2,7 @@ esphome:
   name: respeaker-lite
   project:
     name: diycraic.brick_assistant
-    version: 2025.04.12
+    version: 2025.02.25
   min_version: 2025.3.3
   friendly_name: ReSpeaker-lite
   platformio_options:
@@ -111,7 +111,7 @@ external_components:
 
   - source:
       type: git
-      url: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/tree/main
+      url: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant
       ref: main
     components:
       - respeaker_lite
@@ -163,7 +163,7 @@ respeaker_lite:
     internal: false
     id: firmware_version
   firmware:
-    url: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/blob/main/respeaker_lite_i2s_dfu_firmware_48k_v1.1.0.bin
+    url: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/main/respeaker_lite_i2s_dfu_firmware_48k_v1.1.0.bin
     version: "1.1.0"
     md5: 9297155d1bf3eb21a9d4db52a89ea0c6
     on_begin:
@@ -494,17 +494,17 @@ media_player:
           duration: 1.0s
     files:
       - id: siren_sound
-        file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/blob/BrickAssistant/sounds/siren.wav
+        file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/siren.wav
       - id: timer_finished_sound
-        file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/blob/BrickAssistant/sounds/timer_finished.flac
+        file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/timer_finished.flac
       - id: wake_word_triggered_sound
-        file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/blob/BrickAssistant/sounds/wake_word_triggered.flac
+        file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/wake_word_triggered.flac
       - id: button_press_sound
-        file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/blob/BrickAssistant/sounds/click.mp3
+        file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/click.mp3
       - id: notification_sound
-        file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/blob/BrickAssistant/sounds/notification.mp3
+        file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/notification.mp3
       - id: connection_problem_sound
-        file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/blob/BrickAssistant/sounds/connection_problem.mp3
+        file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/connection_problem.mp3
 
 ############################
 # MICRO WAKE WORD
@@ -944,6 +944,8 @@ light:
             float user_v = values.get_brightness();
             it[0].set_rgb(user_r * user_v, user_g * user_v, user_b * user_v);
 
+# Partition Light => user sees "Led Light" in Home Assistant
+# It references the single LED in led_internal, from index 0..0
   - platform: partition
     id: led
     name: "LED Light"
