@@ -1,0 +1,15 @@
+{
+  "name": "respeaker-lite",
+  "version": "2025.02.25",
+  "home_assistant_domain": "esphome",
+  "funding_url": "https://www.buymeacoffee.com/diycraic",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        { "path": "respeaker-lite-brick-assistant-firmware.bin", "offset": 0 },
+      ]
+    }
+  ]
+}
