@@ -8,7 +8,7 @@
     {
       "chipFamily": "ESP32-S3",
       "parts": [
-        { "path": "respeaker-lite-brick-assistant-firmware.bin", "offset": 0 },
+        { "path": "respeaker-lite-brick-assistant-firmware.bin", "offset": 0 }
       ]
     }
   ]
