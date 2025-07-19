@@ -1,6 +1,6 @@
 {
   "name": "ReSpeaker-lite Brick Assistant by DIY Craic",
-  "version": "2025.02.25",
+  "version": "2025.07.19",
   "home_assistant_domain": "esphome",
   "funding_url": "https://www.buymeacoffee.com/diycraic",
   "new_install_prompt_erase": true,
