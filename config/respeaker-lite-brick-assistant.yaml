@@ -3,7 +3,7 @@ esphome:
   project:
     name: diycraic.brick_assistant
     version: 2025.02.25
-  min_version: 2025.3.3
+  min_version: 2025.7.3
   friendly_name: ReSpeaker-lite
   platformio_options:
     board_build.flash_mode: dio
@@ -14,21 +14,28 @@ esphome:
 
 esp32:
   board: esp32-s3-devkitc-1
+  cpu_frequency: 240MHz
   variant: esp32s3
   flash_size: 8MB
   framework:
     type: esp-idf
     version: recommended
     sdkconfig_options:
-      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
       CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
       CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
       CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB: "y"
 
+      # Moves instructions and read only data from flash into PSRAM on boot.
+      # Both enabled allows instructions to execute while a flash operation is in progress without needing to be placed in IRAM.
+      # Considerably speeds up mWW at the cost of using more PSRAM.
+      CONFIG_SPIRAM_RODATA: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
+
       CONFIG_BT_ALLOCATION_FROM_SPIRAM_FIRST: "y"
       CONFIG_BT_BLE_DYNAMIC_ENV_MEMORY: "y"
+
       CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: "y"
-      CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: "y"
+      CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: "y"  # TLS1.3 support isn't enabled by default in IDF 5.1.5
 
 psram:
   mode: octal
@@ -83,7 +90,7 @@ wifi:
     - logger.log: "wifi connected"
   on_disconnect:
     - logger.log: "wifi disconnected"
-  output_power: 12.0 # Decrease TX power to ~12 dBm (helps with wifi stability for some reason)
+  output_power: 12 # Decrease TX power to ~12 dBm (helps with wifi stability for some reason)
   ap:
     ssid: "Respeaker-Lite Hotspot"
     password: "12345678"
@@ -93,20 +100,10 @@ captive_portal:
 external_components:
   - source:
       type: git
-      url: https://github.com/esphome/home-assistant-voice-pe
-      ref: dev
+      url: https://github.com/formatBCE/esphome
+      ref: respeaker_microphone
     components:
-      - micro_wake_word
-      - microphone
-      - voice_assistant
-    refresh: 0s
-
-  - source:
-      type: git
-      url: https://github.com/formatBCE/home-assistant-voice-pe
-      ref: 48kHz_mic_support
-    components:
-      - nabu_microphone
+      - i2s_audio
     refresh: 0s
 
   - source:
@@ -151,55 +148,9 @@ i2c:
     scl: GPIO6
     frequency: 400kHz
 
-respeaker_lite:
-  id: respeaker
-  reset_pin: GPIO2
-  mute_state:
-    internal: true
-    id: mute_state
-  firmware_version:
-    icon: mdi:application-cog
-    name: XMOS firmware version
-    internal: false
-    id: firmware_version
-  firmware:
-    url: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/main/respeaker_lite_i2s_dfu_firmware_48k_v1.1.0.bin
-    version: "1.1.0"
-    md5: 9297155d1bf3eb21a9d4db52a89ea0c6
-    on_begin:
-      - light.turn_on:
-          brightness: 100%
-          red: 50%
-          green: 50%
-          blue: 50%
-          id: led_internal
-          effect: "Slow Pulse"
-    on_end:
-      - light.turn_on:
-          brightness: 100%
-          red: 0%
-          green: 100%
-          blue: 0%
-          id: led_internal
-          effect: "Fast Pulse"
-      - delay: 3s
-      - light.turn_off:
-          id: led_internal
-    on_error:
-      - light.turn_on:
-          brightness: 100%
-          red: 100%
-          green: 0%
-          blue: 0%
-          id: led_internal
-          effect: "Fast Pulse"
-      - delay: 3s
-      - light.turn_off:
-          id: led_internal
-
 microphone:
-  - platform: nabu_microphone
-    id: nabu_mic
+  - platform: i2s_audio
+    id: i2s_mics
     i2s_din_pin: GPIO44
     adc_type: external
     pdm: false
@@ -207,12 +158,7 @@ microphone:
     bits_per_sample: 32bit
     i2s_mode: secondary
     i2s_audio_id: i2s_input
-    channel_0:
-      id: nabu_mic_va
-      amplify_shift: 2
-    channel_1:
-      id: nabu_mic_mww
-      amplify_shift: 4
+    channel: stereo
 
 globals:
   - id: va_connected
@@ -349,9 +295,9 @@ binary_sensor:
               - media_player.volume_set:
                   id: external_media_player
                   volume: !lambda |-
-                    float vol = id(external_media_player).volume - 0.1f;
-                    if (vol < 0.0f) {
-                      vol = 0.0f;
+                    float vol = id(external_media_player).volume - 0.05f;
+                    if (vol < 0.1f) {
+                      vol = 0.1f;
                       id(short_led_pulse).execute();
                     }
                     return vol;
@@ -406,7 +352,7 @@ binary_sensor:
                             id(short_led_pulse).execute();
                             return;
                           }
-                          float vol = current_vol + 0.1f;
+                          float vol = current_vol + 0.05f;
                           if (vol > 1.0f) vol = 1.0f;
                           auto call = id(external_media_player).make_call();
                           call.set_volume(vol);
@@ -483,7 +429,7 @@ media_player:
     on_announcement:
       - mixer_speaker.apply_ducking:
           id: media_mixing_input
-          decibel_reduction: 30
+          decibel_reduction: 35
           duration: 500ms
       - wait_until:
           not:
@@ -511,23 +457,29 @@ media_player:
 ############################
 micro_wake_word:
   id: mww
+  microphone:
+    microphone: i2s_mics
+    channels: 1
+    gain_factor: 4
+  stop_after_detection: false
   models:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
       probability_cutoff: 0.8
       id: okay_nabu
+    - model: https://raw.githubusercontent.com/formatBCE/Respeaker-Lite-ESPHome-integration/refs/heads/main/microwakeword/models/v2/kenobi.json
+      probability_cutoff: 0.8
+      id: kenobi
     - model: hey_jarvis
+      probability_cutoff: 0.8
       id: hey_jarvis
-      probability_cutoff: 0.8
     - model: hey_mycroft
-      id: hey_mycroft
       probability_cutoff: 0.8
-    - model: https://github.com/kahrendt/microWakeWord/releases/download/stop-20241016.2/stop.json
-      probability_cutoff: 0.4
+      id: hey_mycroft
+    - model: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
       id: stop
       internal: true
   vad:
     probability_cutoff: 0.1
-  microphone: nabu_mic_mww
   on_wake_word_detected:
     - logger.log:
         format: "Wake word was: %s"
@@ -594,7 +546,9 @@ voice_assistant:
   id: va
   micro_wake_word: mww
   use_wake_word: false
-  microphone: nabu_mic_va
+  microphone:
+    microphone: i2s_mics
+    channels: 0
   noise_suppression_level: 1
   auto_gain: 0dBFS
   volume_multiplier: 1
@@ -667,7 +621,7 @@ voice_assistant:
               condition:
                 - switch.is_off: timer_ringing
               then:
-                - lambda: id(stop).disable();
+                - micro_wake_word.disable_model: stop
                 - light.turn_off: led_internal
 
   on_timer_tick:
@@ -792,7 +746,7 @@ switch:
                   media_player.is_announcing: external_media_player
 
     on_turn_off:
-      - lambda: id(stop).disable();
+      - micro_wake_word.disable_model: stop
       - light.turn_off: led_internal
       - script.stop: timer_autooff_delay
       - media_player.stop:
@@ -964,3 +918,49 @@ light:
       - id: led_internal
         from: 0
         to: 0
+
+respeaker_lite:
+  id: respeaker
+  reset_pin: GPIO2
+  mute_state:
+    internal: true
+    id: mute_state
+  firmware_version:
+    icon: mdi:application-cog
+    name: XMOS firmware version
+    internal: false
+    id: firmware_version
+  firmware:
+    url: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/main/respeaker_lite_i2s_dfu_firmware_48k_v1.1.0.bin
+    version: "1.1.0"
+    md5: 9297155d1bf3eb21a9d4db52a89ea0c6
+    on_begin:
+      - light.turn_on:
+          brightness: 100%
+          red: 0%
+          green: 0%
+          blue: 100%
+          id: led_internal
+          effect: "Slow Pulse"
+    on_end:
+      - light.turn_on:
+          brightness: 100%
+          red: 0%
+          green: 100%
+          blue: 0%
+          id: led_internal
+          effect: "Fast Pulse"
+      - delay: 3s
+      - light.turn_off:
+          id: led_internal
+    on_error:
+      - light.turn_on:
+          brightness: 100%
+          red: 100%
+          green: 0%
+          blue: 0%
+          id: led_internal
+          effect: "Fast Pulse"
+      - delay: 3s
+      - light.turn_off:
+          id: led_internal
