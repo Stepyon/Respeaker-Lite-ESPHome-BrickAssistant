@@ -2,7 +2,7 @@ esphome:
   name: respeaker-lite
   project:
     name: diycraic.brick_assistant
-    version: 2025.02.25
+    version: 2025.07.28
   min_version: 2025.7.3
   friendly_name: ReSpeaker-lite
   platformio_options:
