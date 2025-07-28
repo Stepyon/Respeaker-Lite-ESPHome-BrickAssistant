@@ -22,4 +22,6 @@
 - **Media playback:** music, radio, voice notifications
 - **Siren mode** for security/emergency alerts (CO₂, smoke, water leaks, etc.)
 - **Automatic firmware updates** for the XMOS XU316 audio chipset
+  
+![image](images/BrickAssistantBanner.jpg)
 
