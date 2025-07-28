@@ -5,7 +5,7 @@
 
 ## Main Features
 
-- **Based on SeeedStudio ReSpeaker Lite Voice Assistant Kit** ([specifications](#))
+- **Based on SeeedStudio ReSpeaker Lite Voice Assistant Kit** ([specifications](https://wiki.seeedstudio.com/xiao_respeaker/))
 - **ESPHome firmware** with 16-bit 48kHz audio output for enhanced sound quality
 - **Sealed 3D-printed enclosure** with 5W (2" or 2.5") speaker and 2 passive radiators for better sound quality
 - **2 multi-functional hardware buttons** for volume, mute, media control, and more
