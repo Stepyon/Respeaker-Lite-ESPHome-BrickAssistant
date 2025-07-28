@@ -1,7 +1,7 @@
 ## What is it
 # Brick Assistant - DIY Voice Assistant Project
 (Fork of [Respeaker-Lite-ESPHome-integration](https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration))
-## Check the detailed DIY Guide on [diycraic.com](https://diycraic.com/2025/07/28/building-your-own-voice-assistant-for-home-assistant)
+## Check the detailed DIY guide on [diycraic.com](https://diycraic.com/2025/07/28/building-your-own-voice-assistant-for-home-assistant)
 
 ## Main Features
 
