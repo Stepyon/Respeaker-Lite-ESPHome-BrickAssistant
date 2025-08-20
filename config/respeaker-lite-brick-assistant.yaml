@@ -2,8 +2,8 @@ esphome:
   name: respeaker-lite
   project:
     name: diycraic.brick_assistant
-    version: 2025.07.28
-  min_version: 2025.7.3
+    version: 2025.08.20
+  min_version: 2025.8.0
   friendly_name: ReSpeaker-lite
   platformio_options:
     board_build.flash_mode: dio
@@ -90,10 +90,10 @@ wifi:
     - logger.log: "wifi connected"
   on_disconnect:
     - logger.log: "wifi disconnected"
-  output_power: 12 # Decrease TX power to ~12 dBm (helps with wifi stability for some reason)
+  output_power: 12.5 # Decrease TX power to ~12 dBm (helps with wifi stability for some reason)
   ap:
     ssid: "Respeaker-Lite Hotspot"
-    password: "12345678"
+    password: "diycraic123!"
 
 captive_portal:
 
@@ -383,7 +383,7 @@ speaker:
     dac_type: external
     channel: stereo
     timeout: never
-    buffer_duration: 100ms
+    buffer_duration: 500ms
     audio_dac: aic3204_dac
 
   - platform: mixer
@@ -437,7 +437,7 @@ media_player:
       - mixer_speaker.apply_ducking:
           id: media_mixing_input
           decibel_reduction: 0
-          duration: 1.0s
+          duration: 500ms
     files:
       - id: siren_sound
         file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/siren.wav
@@ -464,16 +464,16 @@ micro_wake_word:
   stop_after_detection: false
   models:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
-      probability_cutoff: 0.8
+      probability_cutoff: 0.75
       id: okay_nabu
     - model: https://raw.githubusercontent.com/formatBCE/Respeaker-Lite-ESPHome-integration/refs/heads/main/microwakeword/models/v2/kenobi.json
-      probability_cutoff: 0.8
+      probability_cutoff: 0.75
       id: kenobi
     - model: hey_jarvis
-      probability_cutoff: 0.8
+      probability_cutoff: 0.75
       id: hey_jarvis
     - model: hey_mycroft
-      probability_cutoff: 0.8
+      probability_cutoff: 0.75
       id: hey_mycroft
     - model: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
       id: stop
