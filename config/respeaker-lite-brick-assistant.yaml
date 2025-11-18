@@ -2,8 +2,8 @@ esphome:
   name: respeaker-lite
   project:
     name: diycraic.brick_assistant
-    version: 2025.09.10
-  min_version: 2025.8.4
+    version: 2025.11.18
+  min_version: 2025.10.5
   friendly_name: ReSpeaker-lite
   platformio_options:
     board_build.flash_mode: dio
