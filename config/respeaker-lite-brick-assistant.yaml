@@ -2,8 +2,8 @@ esphome:
   name: respeaker-lite
   project:
     name: diycraic.brick_assistant
-    version: 2025.11.18
-  min_version: 2025.10.5
+    version: 2026.04.03
+  min_version: 2026.3.2
   friendly_name: ReSpeaker-lite
   platformio_options:
     board_build.flash_mode: dio
@@ -86,6 +86,7 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   power_save_mode: none
+  fast_connect: true
   on_connect:
     - logger.log: "wifi connected"
   on_disconnect:
@@ -274,7 +275,7 @@ binary_sensor:
   - platform: gpio
     id: user_button
     internal: true
-    name: "Volume Down / Stop Button"
+    name: "Volume Down - Stop Button"
     pin:
       number: GPIO4
       mode:
@@ -318,7 +319,7 @@ binary_sensor:
   - platform: template
     id: mic_mute_button
     internal: true
-    name: "Volume Up / Mute Button"
+    name: "Volume Up - Mute Button"
     lambda: |-
       // Guard: if (mute_state) isn't ready, default to false
       if (!id(mute_state).has_state()) {
@@ -383,7 +384,7 @@ speaker:
     dac_type: external
     channel: stereo
     timeout: never
-    buffer_duration: 500ms
+    buffer_duration: 1000ms
     audio_dac: aic3204_dac
 
   - platform: mixer
@@ -460,26 +461,27 @@ micro_wake_word:
   microphone:
     microphone: i2s_mics
     channels: 1
-    gain_factor: 4
+    gain_factor: 3
   stop_after_detection: false
   models:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
-      probability_cutoff: 0.75
+      probability_cutoff: 0.6
       id: okay_nabu
     - model: https://raw.githubusercontent.com/formatBCE/Respeaker-Lite-ESPHome-integration/refs/heads/main/microwakeword/models/v2/kenobi.json
-      probability_cutoff: 0.75
       id: kenobi
+      probability_cutoff: 0.6
     - model: hey_jarvis
-      probability_cutoff: 0.75
       id: hey_jarvis
+      probability_cutoff: 0.7
     - model: hey_mycroft
-      probability_cutoff: 0.75
       id: hey_mycroft
+      probability_cutoff: 0.8
     - model: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
+      probability_cutoff: 0.2
       id: stop
       internal: true
   vad:
-    probability_cutoff: 0.1
+    probability_cutoff: 0.4
   on_wake_word_detected:
     - logger.log:
         format: "Wake word was: %s"
