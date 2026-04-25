@@ -1,6 +1,6 @@
 {
   "name": "ReSpeaker-lite Brick Assistant by DIY Craic",
-  "version": "2025.08.20",
+  "version": "2026.04.25",
   "home_assistant_domain": "esphome",
   "funding_url": "https://www.buymeacoffee.com/diycraic",
   "new_install_prompt_erase": true,
@@ -8,7 +8,7 @@
     {
       "chipFamily": "ESP32-S3",
       "parts": [
-        { "path": "respeaker-lite-brick-assistant-firmware.bin", "offset": 0 }
+        { "path": "respeaker-lite-brick-assistant-firmware-20260425.bin", "offset": 0 }
       ]
     }
   ]
