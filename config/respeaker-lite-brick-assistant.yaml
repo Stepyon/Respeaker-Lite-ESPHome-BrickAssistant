@@ -2,8 +2,8 @@ esphome:
   name: respeaker-lite
   project:
     name: diycraic.brick_assistant
-    version: 2026.04.25
-  min_version: 2026.4.2
+    version: 2026.05.24
+  min_version: 2026.5.0
   friendly_name: ReSpeaker-lite
   platformio_options:
     board_build.flash_mode: dio
@@ -41,8 +41,8 @@ psram:
   mode: octal
   speed: 80MHz
 
-# network:
-#   enable_ipv6: true
+network:
+  enable_ipv6: true
 
 logger:
   level: DEBUG
@@ -150,11 +150,6 @@ sendspin:
   id: sendspin_hub
   task_stack_in_psram: false
 
-http_request:
-  # Uncomment this, if you have problems with text-to-speech because of Home Assistant HTTPS internal URL
-  # verify_ssl: false
-  buffer_size_rx: 2048  # Reduces CPU load when streaming audio
-
 audio_file:
   - id: siren_sound
     file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/siren.wav
@@ -203,19 +198,6 @@ external_components:
     components: 
       - respeaker_lite
     refresh: 0s
-  - source:
-      # https://github.com/esphome/esphome/pull/14933
-      type: git
-      url: https://github.com/kahrendt/esphome
-      ref: 890e33f99af2c2ea15dc74c3ec4cf32d25203526
-    components: [const, media_source, sendspin]
-  - source:
-      # https://github.com/esphome/esphome/pull/12429
-      type: git
-      url: https://github.com/esphome/esphome
-      ref: ff8ce89556748509d7ee8724e12d9d43d3c8c1e8
-    refresh: 0s
-    components: [http_request]
 
 audio_dac:
   - platform: aic3204
@@ -561,10 +543,10 @@ binary_sensor:
 media_source:
   - platform: audio_file
     id: audio_file_announcement_source
-  - platform: http_request
+  - platform: audio_http
     id: http_announcement_source
     buffer_size: 250000
-  - platform: http_request
+  - platform: audio_http
     id: http_media_source
     buffer_size: 500000
   - platform: sendspin
@@ -622,11 +604,11 @@ micro_wake_word:
   stop_after_detection: false
   models:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
-      probability_cutoff: 0.6
+      probability_cutoff: 0.7
       id: okay_nabu
     - model: https://raw.githubusercontent.com/formatBCE/Respeaker-Lite-ESPHome-integration/refs/heads/main/microwakeword/models/v2/kenobi.json
       id: kenobi
-      probability_cutoff: 0.6
+      probability_cutoff: 0.7
     - model: hey_jarvis
       id: hey_jarvis
       probability_cutoff: 0.7
