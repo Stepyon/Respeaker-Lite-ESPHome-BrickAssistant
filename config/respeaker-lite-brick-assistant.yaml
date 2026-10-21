@@ -309,6 +309,7 @@ button:
     icon: mdi:alarm-off
     on_press:
       - lambda: id(snooze_until) = 0;
+      - script.execute: refresh_snooze_led
 
 interval:
   - interval: 1s
@@ -329,11 +330,50 @@ interval:
           if (id(siren_on) || id(timer_ringing).state) return;
           id(snooze_until) = 0;
           id(timer_ringing).turn_on();
+      # The refresh script only changes the light when the indicator state
+      # changes, so running it once per second does not reset the pulse.
+      - script.execute: refresh_snooze_led
 
 ############################
 # SCRIPTS
 ############################
 script:
+  # This is the only controller for the Snooze LED status. It checks the
+  # active effect before issuing a light command, preventing a once-per-second
+  # animation restart and preserving higher-priority LED indications.
+  - id: refresh_snooze_led
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(snooze_until) != 0 && !id(siren_on) &&
+                     !id(timer_ringing).state && !id(notification_ringing).state &&
+                     !id(voice_audio_active) && !id(va).is_running();
+          then:
+            - if:
+                condition:
+                  lambda: |-
+                    return id(led_internal).get_current_effect_index() !=
+                           id(led_internal).get_effect_index("Snooze Pulse", sizeof("Snooze Pulse") - 1);
+                then:
+                  - light.turn_on:
+                      id: led_internal
+                      effect: "Snooze Pulse"
+                      brightness: 30%
+                      red: 100%
+                      green: 35%
+                      blue: 0%
+          else:
+            # Do not turn off another indication that has already taken over.
+            - if:
+                condition:
+                  lambda: |-
+                    return id(led_internal).get_current_effect_index() ==
+                           id(led_internal).get_effect_index("Snooze Pulse", sizeof("Snooze Pulse") - 1);
+                then:
+                  - light.turn_off: led_internal
+
   # Triggered only by the Snooze wake word while a timer is actively ringing.
   - id: snooze_ring
     mode: single
@@ -351,6 +391,7 @@ script:
                                    (time_t) id(snooze_minutes).state * 60;
                 ESP_LOGI("snooze", "Timer snoozed for %d minutes", (int) id(snooze_minutes).state);
             - switch.turn_off: timer_ringing
+            - script.execute: refresh_snooze_led
           else:
             - logger.log:
                 level: WARN
@@ -925,6 +966,7 @@ voice_assistant:
               id: voice_audio_active
               value: "true"
           - script.execute: refresh_media_ducking
+          - script.execute: refresh_snooze_led
           - light.turn_on:
               id: led_internal
               brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
@@ -953,12 +995,16 @@ voice_assistant:
               then:
                 - micro_wake_word.disable_model: stop
                 - light.turn_off: led_internal
+          - script.execute: refresh_snooze_led
 
   on_timer_tick:
     - if:
         condition:
-          not:
-            voice_assistant.is_running
+          and:
+            - not:
+                voice_assistant.is_running
+            # Timer tick animations must not replace the Snooze indicator.
+            - lambda: return id(snooze_until) == 0;
         then:
           - lambda: |-
               id(timer_led_pulse).execute();
@@ -970,6 +1016,7 @@ voice_assistant:
 
   on_timer_cancelled:
     - light.turn_off: led_internal
+    - script.execute: refresh_snooze_led
 
 ############################
 # SWITCHES (SIREN / TIMER)
@@ -990,6 +1037,7 @@ switch:
             - micro_wake_word.enable_model: snooze
     on_turn_off:
       - lambda: id(snooze_until) = 0;
+      - script.execute: refresh_snooze_led
       - micro_wake_word.disable_model: snooze
 
   - platform: template
@@ -1005,6 +1053,7 @@ switch:
           id: siren_on
           value: "true"
       - lambda: id(siren_ringing).publish_state(true);
+      - script.execute: refresh_snooze_led
       - if:
           condition:
             - switch.is_on: timer_ringing
@@ -1035,6 +1084,7 @@ switch:
           value: "false"
       - lambda: id(siren_ringing).publish_state(false);
       - light.turn_off: led_internal
+      - script.execute: refresh_snooze_led
       - script.stop: siren_autooff_delay
       - script.stop: siren_playback
       - media_player.stop:
@@ -1050,6 +1100,7 @@ switch:
     restore_mode: ALWAYS_OFF
 
     on_turn_on:
+      - script.execute: refresh_snooze_led
       - script.execute: refresh_media_ducking
       - micro_wake_word.enable_model: stop
       - if:
@@ -1083,6 +1134,7 @@ switch:
               announcement: true
               id: external_media_player
       - script.execute: refresh_media_ducking
+      - script.execute: refresh_snooze_led
 
   - platform: template
     id: notification_ringing
@@ -1091,6 +1143,7 @@ switch:
     internal: false
     restore_mode: ALWAYS_OFF
     on_turn_on:
+      - script.execute: refresh_snooze_led
       - script.execute: refresh_media_ducking
       - light.turn_on:
           id: led_internal
@@ -1119,6 +1172,7 @@ switch:
     on_turn_off:
       - light.turn_off: led_internal
       - script.execute: refresh_media_ducking
+      - script.execute: refresh_snooze_led
 
 ############################
 # LED(s)
@@ -1162,6 +1216,29 @@ light:
               increasing = false;
             } else if (fraction <= 0.0f) {
               fraction = 0.0f;
+              increasing = true;
+            }
+
+      # Low-brightness amber breathing while a timer is postponed.
+      # Approximately one full pulse every 3.3 seconds.
+      - addressable_lambda:
+          name: "Snooze Pulse"
+          update_interval: 50ms
+          lambda: |-
+            static float fraction = 0.05f;
+            static bool increasing = true;
+            const float step = 0.03f;
+            auto values = id(led_internal)->current_values;
+            float scale = fraction * values.get_brightness();
+            it[0].set_rgb(values.get_red() * 255.0f * scale,
+                          values.get_green() * 255.0f * scale,
+                          values.get_blue() * 255.0f * scale);
+            fraction += increasing ? step : -step;
+            if (fraction >= 1.0f) {
+              fraction = 1.0f;
+              increasing = false;
+            } else if (fraction <= 0.05f) {
+              fraction = 0.05f;
               increasing = true;
             }
 
