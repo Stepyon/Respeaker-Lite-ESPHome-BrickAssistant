@@ -71,15 +71,18 @@ select:
         if (x == "Slightly sensitive") {
           id(okay_nabu).set_probability_cutoff(217);    // 0.85 -> 0.000 FAPH on DipCo (Manifest's default)
           id(hey_jarvis).set_probability_cutoff(247);   // 0.97 -> 0.563 FAPH on DipCo (Manifest's default)
-          id(hey_mycroft).set_probability_cutoff(253);  // 0.99 -> 0.567 FAPH on DipCo
+          id(hey_mycroft).set_probability_cutoff(253);
+          id(kenobi).set_probability_cutoff(217);  // 0.99 -> 0.567 FAPH on DipCo
         } else if (x == "Moderately sensitive") {
           id(okay_nabu).set_probability_cutoff(176);    // 0.69 -> 0.376 FAPH on DipCo
           id(hey_jarvis).set_probability_cutoff(235);   // 0.92 -> 0.939 FAPH on DipCo
-          id(hey_mycroft).set_probability_cutoff(242);  // 0.95 -> 1.502 FAPH on DipCo (Manifest's default)
+          id(hey_mycroft).set_probability_cutoff(242);
+          id(kenobi).set_probability_cutoff(176);  // 0.95 -> 1.502 FAPH on DipCo (Manifest's default)
         } else if (x == "Very sensitive") {
           id(okay_nabu).set_probability_cutoff(143);    // 0.56 -> 0.751 FAPH on DipCo
           id(hey_jarvis).set_probability_cutoff(212);   // 0.83 -> 1.502 FAPH on DipCo
-          id(hey_mycroft).set_probability_cutoff(237);  // 0.93 -> 1.878 FAPH on DipCo
+          id(hey_mycroft).set_probability_cutoff(237);
+          id(kenobi).set_probability_cutoff(143);  // 0.93 -> 1.878 FAPH on DipCo
         }
   - platform: logger
     id: logger_select
@@ -152,17 +155,17 @@ sendspin:
 
 audio_file:
   - id: siren_sound
-    file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/siren.wav
+    file: https://raw.githubusercontent.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/0ba9ed27476254b120961055951ff61d5286ccd3/sounds/siren.wav
   - id: timer_finished_sound
-    file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/timer_finished.flac
+    file: https://raw.githubusercontent.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/0ba9ed27476254b120961055951ff61d5286ccd3/sounds/timer_finished.flac
   - id: wake_word_triggered_sound
-    file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/wake_word_triggered.flac
+    file: https://raw.githubusercontent.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/0ba9ed27476254b120961055951ff61d5286ccd3/sounds/wake_word_triggered.flac
   - id: button_press_sound
-    file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/click.mp3
+    file: https://raw.githubusercontent.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/0ba9ed27476254b120961055951ff61d5286ccd3/sounds/click.mp3
   - id: notification_sound
-    file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/notification.mp3
+    file: https://raw.githubusercontent.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/0ba9ed27476254b120961055951ff61d5286ccd3/sounds/notification.mp3
   - id: connection_problem_sound
-    file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/connection_problem.mp3
+    file: https://raw.githubusercontent.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/0ba9ed27476254b120961055951ff61d5286ccd3/sounds/connection_problem.mp3
 
 ota:
   - platform: esphome
@@ -187,14 +190,14 @@ external_components:
   - source:
       type: git
       url: https://github.com/formatBCE/esphome
-      ref: respeaker_microphone
+      ref: 04a9f40154d2720bd90745f025f6a6deb50f5681
     components:
       - i2s_audio
     refresh: 0s
   - source:
       type: git
       url: https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration
-      ref: main
+      ref: 00131ff518b878413b5de7023b956766747ee600
     components: 
       - respeaker_lite
     refresh: 0s
@@ -262,6 +265,32 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  - id: timer_playback
+    mode: restart
+    then:
+      - while:
+          condition:
+            switch.is_on: timer_ringing
+          then:
+            - script.execute:
+                id: play_sound
+                priority: true
+                sound_file: "timer_finished_sound"
+            - delay: 3s
+
+  - id: siren_playback
+    mode: restart
+    then:
+      - while:
+          condition:
+            switch.is_on: siren_ringing
+          then:
+            - script.execute:
+                id: play_sound
+                priority: true
+                sound_file: "siren_sound"
+            - delay: 6s
+
   - id: saved_volume
     type: float
     restore_value: no
@@ -577,7 +606,7 @@ media_player:
         - sendspin_media_source
     volume_increment: 0.05
     volume_min: 0.3
-    volume_max: 0.8
+    volume_max: 1.0
     on_announcement:
       - mixer_speaker.apply_ducking:
           id: media_mixing_input
@@ -606,7 +635,7 @@ micro_wake_word:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
       probability_cutoff: 0.7
       id: okay_nabu
-    - model: https://raw.githubusercontent.com/formatBCE/Respeaker-Lite-ESPHome-integration/refs/heads/main/microwakeword/models/v2/kenobi.json
+    - model: https://raw.githubusercontent.com/formatBCE/Respeaker-Lite-ESPHome-integration/00131ff518b878413b5de7023b956766747ee600/microwakeword/models/v2/kenobi.json
       id: kenobi
       probability_cutoff: 0.7
     - model: hey_jarvis
@@ -786,7 +815,7 @@ voice_assistant:
               id: media_mixing_input
               decibel_reduction: 0
               duration: 1.0s
-          # - script.stop: activate_stop_word_once
+          - script.stop: activate_stop_word_once
           - if:
               condition:
                 - switch.is_off: timer_ringing
@@ -804,23 +833,8 @@ voice_assistant:
               id(timer_led_pulse).execute();
 
   on_timer_finished:
+    # Ringing is exclusively controlled by timer_ringing.
     - switch.turn_on: timer_ringing
-    - while:
-        condition:
-          switch.is_on: timer_ringing
-        then:
-          - script.execute:
-              id: play_sound
-              priority: true
-              sound_file: "timer_finished_sound"              
-          - wait_until:
-              media_player.is_announcing: 
-                id: external_media_player
-          - wait_until:
-              not:
-                media_player.is_announcing: 
-                  id: external_media_player
-    - light.turn_off: led_internal
 
   on_timer_cancelled:
     - light.turn_off: led_internal
@@ -856,26 +870,14 @@ switch:
           id: external_media_player
           volume: 1.0
       - script.execute: siren_autooff_delay
-      - while:
-          condition:
-            switch.is_on: siren_ringing
-          then:
-            - light.turn_on:
-                id: led_internal
-                effect: "Siren Pulse"
-                brightness: 100%
-                red: 100%
-                green: 0%
-                blue: 0%
-            - script.execute:
-                id: play_sound
-                priority: true
-                sound_file: "siren_sound" 
-            - delay: 6s
-            - wait_until:
-                not:
-                  media_player.is_playing: 
-                    id: external_media_player
+      - light.turn_on:
+          id: led_internal
+          effect: "Siren Pulse"
+          brightness: 100%
+          red: 100%
+          green: 0%
+          blue: 0%
+      - script.execute: siren_playback
 
     turn_off_action:
       - globals.set:
@@ -884,14 +886,10 @@ switch:
       - lambda: id(siren_ringing).publish_state(false);
       - light.turn_off: led_internal
       - script.stop: siren_autooff_delay
-      - if:
-          condition:
-            media_player.is_playing:
-              id: external_media_player
-          then:
-            media_player.stop:
-              announcement: false
-              id: external_media_player
+      - script.stop: siren_playback
+      - media_player.stop:
+          id: external_media_player
+          announcement: true
       - script.execute: restore_volume
 
   - platform: template
@@ -914,23 +912,10 @@ switch:
           green: 100%
           blue: 100%
       - script.execute: timer_autooff_delay
-      - while:
-          condition:
-            switch.is_on: timer_ringing
-          then:
-            - script.execute:
-                id: play_sound
-                priority: true
-                sound_file: "timer_finished_sound" 
-            - wait_until:
-                media_player.is_announcing: 
-                  id: external_media_player
-            - wait_until:
-                not:
-                  media_player.is_announcing: 
-                    id: external_media_player
+      - script.execute: timer_playback
 
     on_turn_off:
+      - script.stop: timer_playback
       - micro_wake_word.disable_model: stop
       - light.turn_off: led_internal
       - script.stop: timer_autooff_delay
@@ -1126,7 +1111,7 @@ respeaker_lite:
     internal: false
     id: firmware_version
   firmware:
-    url: https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration/raw/refs/heads/main/respeaker_lite_i2s_dfu_firmware_48k_v1.1.0.bin
+    url: https://raw.githubusercontent.com/formatBCE/Respeaker-Lite-ESPHome-integration/00131ff518b878413b5de7023b956766747ee600/respeaker_lite_i2s_dfu_firmware_48k_v1.1.0.bin
     version: "1.1.0"
     md5: 9297155d1bf3eb21a9d4db52a89ea0c6
     on_begin:
