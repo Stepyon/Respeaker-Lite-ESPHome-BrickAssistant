@@ -22,6 +22,18 @@ Disabling Snooze also cancels an existing pending Snooze. The Snooze model is
 only enabled when a timer rings and Snooze is enabled; it is disabled when the
 timer stops. A Snooze recognition outside an actively ringing timer is ignored.
 
+## LED indication
+
+BrickAssistant now uses a dedicated, subdued **amber breathing pulse** while a
+Snooze is pending (about one cycle every 3.3 seconds). This is deliberately
+different from the cyan timer-ringing animation. The LED returns to the normal
+state when Snooze is cancelled, disabled, expires or resumes ringing.
+
+Active voice interactions, notifications, ringing timers and the security siren
+take precedence over the Snooze indication. Once they finish, the pending
+Snooze indicator returns automatically. Timer-tick flashes are suppressed while
+Snooze is pending to prevent them from interrupting the amber effect.
+
 ## Reliability and limitations
 
 - **Clock needed:** Home Assistant must provide valid device time. If the clock
@@ -63,6 +75,12 @@ timer stops. A Snooze recognition outside an actively ringing timer is ignored.
 - [ ] Use Cancel snooze while pending; confirm it does not re-ring.
 - [ ] Trigger a new timer completion while a Snooze is pending. Only one
       ringtone should persist.
+- [ ] During a pending Snooze, verify the LED breathes in amber (not cyan)
+      and stays on this effect between timer ticks.
+- [ ] Cancel Snooze, disable it, or let it ring again; verify the LED indication
+      is removed and normal timer-ringing LED resumes when the timer returns.
+- [ ] Start a voice response or notification while Snooze is pending and verify
+      its LED takes priority; the amber pulse should return afterward.
 - [ ] Ring the siren during pending Snooze; verify the siren continues
       uninterrupted and deferred ringing honours the recovery limit.
 - [ ] Say "Snooze" outside timer ringing and while a security siren rings.
