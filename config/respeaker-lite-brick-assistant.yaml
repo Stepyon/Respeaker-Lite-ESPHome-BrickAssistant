@@ -253,6 +253,10 @@ globals:
     type: bool
     restore_value: no
     initial_value: "false"
+  - id: voice_audio_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
   - id: siren_on
     type: bool
     restore_value: no
@@ -265,6 +269,26 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  - id: refresh_media_ducking
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(voice_audio_active) || id(siren_on) ||
+                     id(timer_ringing).state || id(notification_ringing).state ||
+                     id(external_media_player).state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING;
+          then:
+            - mixer_speaker.apply_ducking:
+                id: media_mixing_input
+                decibel_reduction: 30
+                duration: 200ms
+          else:
+            - mixer_speaker.apply_ducking:
+                id: media_mixing_input
+                decibel_reduction: 0
+                duration: 500ms
+
   - id: timer_playback
     mode: restart
     then:
@@ -615,18 +639,14 @@ media_player:
     volume_min: 0.3
     volume_max: 1.0
     on_announcement:
-      - mixer_speaker.apply_ducking:
-          id: media_mixing_input
-          decibel_reduction: 30
-          duration: 200ms
+      - script.execute: refresh_media_ducking
       - wait_until:
-          not:
-            media_player.is_announcing:
-              id: external_media_player
-      - mixer_speaker.apply_ducking:
-          id: media_mixing_input
-          decibel_reduction: 0
-          duration: 500ms
+          condition:
+            not:
+              media_player.is_announcing:
+                id: external_media_player
+          timeout: 90s
+      - script.execute: refresh_media_ducking
 
 ############################
 # MICRO WAKE WORD
@@ -799,10 +819,10 @@ voice_assistant:
           - switch.is_off: siren_ringing
         then:
           - logger.log: "VA: on_start"
-          - mixer_speaker.apply_ducking:
-              id: media_mixing_input
-              decibel_reduction: 30  # Number of dB quieter; higher implies more quiet, 0 implies full volume
-              duration: 0.0s         # The duration of the transition (default is no transition)
+          - globals.set:
+              id: voice_audio_active
+              value: "true"
+          - script.execute: refresh_media_ducking
           - light.turn_on:
               id: led_internal
               brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
@@ -820,10 +840,10 @@ voice_assistant:
               not:
                 voice_assistant.is_running
           - logger.log: "VA: on_end"
-          - mixer_speaker.apply_ducking:
-              id: media_mixing_input
-              decibel_reduction: 0
-              duration: 1.0s
+          - globals.set:
+              id: voice_audio_active
+              value: "false"
+          - script.execute: refresh_media_ducking
           - script.stop: activate_stop_word_once
           - if:
               condition:
@@ -887,6 +907,7 @@ switch:
           green: 0%
           blue: 0%
       - script.execute: siren_playback
+      - script.execute: refresh_media_ducking
 
     turn_off_action:
       - globals.set:
@@ -900,6 +921,7 @@ switch:
           id: external_media_player
           announcement: true
       - script.execute: restore_volume
+      - script.execute: refresh_media_ducking
 
   - platform: template
     name: "Timer Ring"
@@ -908,10 +930,7 @@ switch:
     restore_mode: ALWAYS_OFF
 
     on_turn_on:
-      - mixer_speaker.apply_ducking:
-          id: media_mixing_input
-          decibel_reduction: 15
-          duration: 200ms
+      - script.execute: refresh_media_ducking
       - lambda: id(stop).enable();
       - light.turn_on:
           id: led_internal
@@ -937,10 +956,7 @@ switch:
             media_player.stop:
               announcement: true
               id: external_media_player
-      - mixer_speaker.apply_ducking:
-          id: media_mixing_input
-          decibel_reduction: 0
-          duration: 1.0s
+      - script.execute: refresh_media_ducking
 
   - platform: template
     id: notification_ringing
@@ -949,10 +965,7 @@ switch:
     internal: false
     restore_mode: ALWAYS_OFF
     on_turn_on:
-      - mixer_speaker.apply_ducking:
-          id: media_mixing_input
-          decibel_reduction: 15
-          duration: 200ms
+      - script.execute: refresh_media_ducking
       - light.turn_on:
           id: led_internal
           brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
@@ -979,10 +992,7 @@ switch:
     
     on_turn_off:
       - light.turn_off: led_internal
-      - mixer_speaker.apply_ducking:
-          id: media_mixing_input
-          decibel_reduction: 0
-          duration: 1.0s
+      - script.execute: refresh_media_ducking
 
 ############################
 # LED(s)
