@@ -26,6 +26,8 @@ GitHub Actions pip-cache keying.
 - Test *each* wake word and all three sensitivity levels, including Kenobi.
 - Ring a timer while media is playing, say Stop, and verify the timer audio
   stops; repeat when media is paused or disconnected.
+- Follow the dedicated [Timer Snooze checklist](SNOOZE.md), including reboot
+  persistence, no-clock fallback, cancellation, and siren precedence.
 - Ring the siren and disable it halfway through the sound: audio must stop.
 - During a siren, verify the saved user volume is restored after cancellation.
 - Trigger a notification during music and a voice assistant response.
