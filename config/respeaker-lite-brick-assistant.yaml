@@ -269,6 +269,15 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  - id: saved_volume
+    type: float
+    restore_value: no
+    initial_value: '0.5'
+
+############################
+# SCRIPTS
+############################
+script:
   - id: refresh_media_ducking
     mode: restart
     then:
@@ -315,15 +324,6 @@ globals:
                 sound_file: "siren_sound"
             - delay: 6s
 
-  - id: saved_volume
-    type: float
-    restore_value: no
-    initial_value: '0.5'
-
-############################
-# SCRIPTS
-############################
-script:
   # Script executed when we want to play sounds on the device.
   - id: play_sound
     parameters:
