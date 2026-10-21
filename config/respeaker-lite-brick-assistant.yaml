@@ -790,66 +790,66 @@ micro_wake_word:
               condition:
                 lambda: return wake_word != "Snooze";
               then:
-            - if:
-                condition:
-                  voice_assistant.is_running:
-                then:
-                  voice_assistant.stop:
-            - if:
-                condition:
-                  media_player.is_announcing:
-                    id: external_media_player
-                then:
-                  - media_player.stop:
-                      id: external_media_player
-                      announcement: true
-            - if:
-                condition:
-                  lambda: return wake_word != "Stop";
-                then:
-                  - if:
-                      condition:
-                        lambda: |-
-                          return id(va_connected);
-                      then:
-                        - light.turn_on:
-                            id: led_internal
-                            brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
-                            red: 50%
-                            green: 100%
-                            blue: 100%
-                            effect: "Slow Pulse"
-                        - script.execute:
-                            id: play_sound
-                            priority: true
-                            sound_file: "wake_word_triggered_sound"
-                        - delay: 300ms
-                        - wait_until:
-                            condition:
-                              not:
-                                media_player.is_announcing:
-                                  id: external_media_player
-                            timeout: 5s
-                        - voice_assistant.start:
-                            wake_word: !lambda return wake_word;
-                            silence_detection: true
-                      else:
-                        - delay: 1s
-                        - script.execute:
-                            id: play_sound
-                            priority: true
-                            sound_file: "connection_problem_sound"
-                else:
-                  - logger.log: "Stop wake word was used!"
-                  - light.turn_on:
-                      id: led_internal
-                      effect: "Timer Pulse"
-                      brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
-                      red: 100%
-                      green: 0%
-                      blue: 0%
-                  - delay: 300ms
-                  - light.turn_off: led_internal
+                - if:
+                    condition:
+                      voice_assistant.is_running:
+                    then:
+                      voice_assistant.stop:
+                - if:
+                    condition:
+                      media_player.is_announcing:
+                        id: external_media_player
+                    then:
+                      - media_player.stop:
+                          id: external_media_player
+                          announcement: true
+                - if:
+                    condition:
+                      lambda: return wake_word != "Stop";
+                    then:
+                      - if:
+                          condition:
+                            lambda: |-
+                              return id(va_connected);
+                          then:
+                            - light.turn_on:
+                                id: led_internal
+                                brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
+                                red: 50%
+                                green: 100%
+                                blue: 100%
+                                effect: "Slow Pulse"
+                            - script.execute:
+                                id: play_sound
+                                priority: true
+                                sound_file: "wake_word_triggered_sound"
+                            - delay: 300ms
+                            - wait_until:
+                                condition:
+                                  not:
+                                    media_player.is_announcing:
+                                      id: external_media_player
+                                timeout: 5s
+                            - voice_assistant.start:
+                                wake_word: !lambda return wake_word;
+                                silence_detection: true
+                          else:
+                            - delay: 1s
+                            - script.execute:
+                                id: play_sound
+                                priority: true
+                                sound_file: "connection_problem_sound"
+                    else:
+                      - logger.log: "Stop wake word was used!"
+                      - light.turn_on:
+                          id: led_internal
+                          effect: "Timer Pulse"
+                          brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
+                          red: 100%
+                          green: 0%
+                          blue: 0%
+                      - delay: 300ms
+                      - light.turn_off: led_internal
 
 
 ############################
