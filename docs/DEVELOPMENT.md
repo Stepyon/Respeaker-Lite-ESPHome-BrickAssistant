@@ -1,11 +1,14 @@
 # Development, validation and release
 
-The source of truth is `config/respeaker-lite-brick-assistant.yaml`. The ESPHome
-baseline declared by this project is **2026.5.0**. Pin updates deliberately.
+The source of truth is `config/respeaker-lite-brick-assistant.yaml`. The tested
+CI and local development ESPHome version is **2026.9.1**, pinned in
+`requirements-ci.txt`. The YAML's `min_version: 2026.5.0` is a lower-bound
+compatibility declaration, not the CI build version. Update the minimum only
+when a required ESPHome feature makes older versions incompatible.
 
 ## Local development
 
-1. Install Python 3.12 and `pip install esphome==2026.5.0`.
+1. Install Python 3.12 and run `pip install -r requirements-ci.txt`.
 2. Create `config/secrets.yaml` with Wi-Fi/OTA values appropriate for the device
    (do not use a public sample device's settings).
 3. Run `esphome config config/respeaker-lite-brick-assistant.yaml`.
@@ -14,6 +17,8 @@ baseline declared by this project is **2026.5.0**. Pin updates deliberately.
 
 The CI workflow validates configuration and compiles an ESP32-S3 firmware; it does
 **not** prove audio timing, device safety, or hardware compatibility.
+It uses a shared pip dependency file for both reproducible installation and
+GitHub Actions pip-cache keying.
 
 ## Hardware regression checklist
 
