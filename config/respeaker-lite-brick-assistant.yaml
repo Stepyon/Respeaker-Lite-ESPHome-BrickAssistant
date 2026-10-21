@@ -354,8 +354,8 @@ script:
             - if:
                 condition:
                   lambda: |-
-                    return id(led_internal).get_current_effect_index() !=
-                           id(led_internal).get_effect_index("Snooze Pulse", sizeof("Snooze Pulse") - 1);
+                    return id(led_internal)->get_current_effect_index() !=
+                           id(led_internal)->get_effect_index("Snooze Pulse", sizeof("Snooze Pulse") - 1);
                 then:
                   - light.turn_on:
                       id: led_internal
@@ -369,8 +369,8 @@ script:
             - if:
                 condition:
                   lambda: |-
-                    return id(led_internal).get_current_effect_index() ==
-                           id(led_internal).get_effect_index("Snooze Pulse", sizeof("Snooze Pulse") - 1);
+                    return id(led_internal)->get_current_effect_index() ==
+                           id(led_internal)->get_effect_index("Snooze Pulse", sizeof("Snooze Pulse") - 1);
                 then:
                   - light.turn_off: led_internal
 
