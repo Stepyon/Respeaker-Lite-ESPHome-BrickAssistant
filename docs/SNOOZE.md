@@ -24,7 +24,7 @@ timer stops. A Snooze recognition outside an actively ringing timer is ignored.
 
 ## LED indication
 
-BrickAssistant now uses an explicit **amber flash** while a Snooze is pending:
+BrickAssistant now uses an explicit **yellow flash** while a Snooze is pending:
 750 ms on, 750 ms off, at 65% brightness. This is deliberately different
 from the cyan timer-ringing animation. The LED returns to the normal state
 when Snooze is cancelled, disabled, expires or resumes ringing.
@@ -36,7 +36,7 @@ an interrupted/disabled effect from silently suppressing the indicator.
 Active voice interactions, notifications, ringing timers and the security siren
 take precedence over the Snooze indication. Once they finish, the pending
 Snooze indicator returns automatically. Timer-tick flashes are suppressed while
-Snooze is pending to prevent them from interrupting the amber flash.
+Snooze is pending to prevent them from interrupting the yellow flash.
 
 ## Reliability and limitations
 
@@ -79,7 +79,7 @@ Snooze is pending to prevent them from interrupting the amber flash.
 - [ ] Use Cancel snooze while pending; confirm it does not re-ring.
 - [ ] Trigger a new timer completion while a Snooze is pending. Only one
       ringtone should persist.
-- [ ] During a pending Snooze, verify the LED flashes amber (not cyan),
+- [ ] During a pending Snooze, verify the LED flashes yellow (not cyan),
       approximately 750 ms on / 750 ms off, without interruption from ticks.
 - [ ] Confirm `binary_sensor.snooze_pending` is ON whenever this flash is expected.
 - [ ] Cancel Snooze, disable it, or let it ring again; verify the LED indication
