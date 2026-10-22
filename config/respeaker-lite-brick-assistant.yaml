@@ -300,7 +300,7 @@ number:
     entity_category: config
     optimistic: true
     restore_value: true
-    initial_value: 9
+    initial_value: 5
     min_value: 1
     max_value: 60
     step: 1
