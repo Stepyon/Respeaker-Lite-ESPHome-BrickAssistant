@@ -35,6 +35,6 @@ Development changes are maintained on the [`develop` branch](https://github.com/
 ## Timer Snooze (development branch)
 
 A timer can be postponed hands-free by saying **"Snooze"** while it rings.
-The default delay is 9 minutes, configurable from Home Assistant. This feature
+The default delay is 5 minutes, configurable from Home Assistant. This feature
 is timer-only and does not change the emergency siren. See the [Snooze guide](docs/SNOOZE.md)
 for controls, recovery details, and required device tests.
