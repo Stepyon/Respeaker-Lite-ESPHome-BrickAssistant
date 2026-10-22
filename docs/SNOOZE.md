@@ -85,7 +85,7 @@ Snooze is pending to prevent them from interrupting the yellow flash.
 - [ ] Cancel Snooze, disable it, or let it ring again; verify the LED indication
       is removed and normal timer-ringing LED resumes when the timer returns.
 - [ ] Start a voice response or notification while Snooze is pending and verify
-      its LED takes priority; the amber pulse should return afterward.
+      its LED takes priority; the yellow flash should return afterward.
 - [ ] Ring the siren during pending Snooze; verify the siren continues
       uninterrupted and deferred ringing honours the recovery limit.
 - [ ] Say "Snooze" outside timer ringing and while a security siren rings.
