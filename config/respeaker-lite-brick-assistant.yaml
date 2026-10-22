@@ -359,7 +359,7 @@ script:
             lambda: |-
               return id(snooze_until) != 0 && !id(siren_on) &&
                      !id(timer_ringing).state && !id(notification_ringing).state &&
-                     !id(voice_audio_active);
+                     !id(va).is_running();
           then:
             - if:
                 condition:
@@ -388,7 +388,7 @@ script:
                   lambda: |-
                     return id(snooze_led_blink_on) && !id(siren_on) &&
                            !id(timer_ringing).state && !id(notification_ringing).state &&
-                           !id(voice_audio_active);
+                           !id(va).is_running();
                 then:
                   - light.turn_off: led_internal
             - globals.set:
