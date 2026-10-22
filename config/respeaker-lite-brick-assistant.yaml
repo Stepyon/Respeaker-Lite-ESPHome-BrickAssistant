@@ -370,7 +370,7 @@ script:
                       effect: "None"
                       brightness: 65%
                       red: 100%
-                      green: 35%
+                      green: 100%
                       blue: 0%
                   - globals.set:
                       id: snooze_led_blink_on
@@ -381,7 +381,7 @@ script:
                       id: snooze_led_blink_on
                       value: "false"
           else:
-            # Shut off a previous amber flash only when no higher-priority
+            # Shut off a previous yellow flash only when no higher-priority
             # indication is currently in control of the same physical LED.
             - if:
                 condition:
