@@ -24,15 +24,19 @@ timer stops. A Snooze recognition outside an actively ringing timer is ignored.
 
 ## LED indication
 
-BrickAssistant now uses a dedicated, subdued **amber breathing pulse** while a
-Snooze is pending (about one cycle every 3.3 seconds). This is deliberately
-different from the cyan timer-ringing animation. The LED returns to the normal
-state when Snooze is cancelled, disabled, expires or resumes ringing.
+BrickAssistant now uses an explicit **amber flash** while a Snooze is pending:
+750 ms on, 750 ms off, at 65% brightness. This is deliberately different
+from the cyan timer-ringing animation. The LED returns to the normal state
+when Snooze is cancelled, disabled, expires or resumes ringing.
+
+The flashing controller is clocked independently of the Snooze deadline check;
+it does not rely on the light effect's internal selection state. This prevents
+an interrupted/disabled effect from silently suppressing the indicator.
 
 Active voice interactions, notifications, ringing timers and the security siren
 take precedence over the Snooze indication. Once they finish, the pending
 Snooze indicator returns automatically. Timer-tick flashes are suppressed while
-Snooze is pending to prevent them from interrupting the amber effect.
+Snooze is pending to prevent them from interrupting the amber flash.
 
 ## Reliability and limitations
 
@@ -75,8 +79,9 @@ Snooze is pending to prevent them from interrupting the amber effect.
 - [ ] Use Cancel snooze while pending; confirm it does not re-ring.
 - [ ] Trigger a new timer completion while a Snooze is pending. Only one
       ringtone should persist.
-- [ ] During a pending Snooze, verify the LED breathes in amber (not cyan)
-      and stays on this effect between timer ticks.
+- [ ] During a pending Snooze, verify the LED flashes amber (not cyan),
+      approximately 750 ms on / 750 ms off, without interruption from ticks.
+- [ ] Confirm `binary_sensor.snooze_pending` is ON whenever this flash is expected.
 - [ ] Cancel Snooze, disable it, or let it ring again; verify the LED indication
       is removed and normal timer-ringing LED resumes when the timer returns.
 - [ ] Start a voice response or notification while Snooze is pending and verify
