@@ -1,8 +1,8 @@
 # Development, validation and release
 
 The source of truth is `config/respeaker-lite-brick-assistant.yaml`. The tested
-CI and local development ESPHome version is **2026.9.1**, pinned in
-`requirements-ci.txt`. The YAML's `min_version: 2026.5.0` is a lower-bound
+CI and local development ESPHome version is **2026.10.0**, pinned in
+`requirements-ci.txt`. The YAML's `min_version: 2026.10.0` is a lower-bound
 compatibility declaration, not the CI build version. Update the minimum only
 when a required ESPHome feature makes older versions incompatible.
 

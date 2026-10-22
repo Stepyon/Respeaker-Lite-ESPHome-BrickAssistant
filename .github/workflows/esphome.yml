@@ -2,7 +2,7 @@ name: ESPHome validation and build
 
 on:
   push:
-    branches: [develop, BrickAssistant]
+    branches: [develop, main, BrickAssistant]
   pull_request:
 
 permissions:
