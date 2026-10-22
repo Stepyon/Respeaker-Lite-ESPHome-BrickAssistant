@@ -30,7 +30,7 @@
 
 Development changes are maintained on the [`develop` branch](https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/tree/develop). See [development and release guide](docs/DEVELOPMENT.md) for the ESPHome build, hardware regression checklist and firmware manifest release steps.
 
-**Firmware note:** The web installer manifest currently points to the dated 2026.04.25 image, not necessarily the latest source. A newer manifest will only be published after a successful build and device test.
+**Firmware note:** The web installer manifest currently points to the dated 2026.04.25 image, not necessarily the latest source.
 
 ## Timer Snooze (development branch)
 
