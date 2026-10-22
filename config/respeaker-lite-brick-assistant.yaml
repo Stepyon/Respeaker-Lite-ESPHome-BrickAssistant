@@ -349,7 +349,7 @@ interval:
 script:
   # Explicit blink instead of an effect-state-dependent breathing animation.
   # Effect state can remain selected even when another action turned the LED off.
-  # A 750ms tick alternates between visible amber and off; transitions to other
+  # A 750ms tick alternates between visible yellow and off; transitions to other
   # activities release Snooze's ownership without altering their LED output.
   - id: refresh_snooze_led
     mode: restart
