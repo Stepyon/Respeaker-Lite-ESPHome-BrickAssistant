@@ -268,6 +268,12 @@ globals:
     type: time_t
     restore_value: yes
     initial_value: '0'
+  # Tracks only whether the Snooze controller last set the LED on. This flag
+  # never persists across reboot, so an interrupted flash cannot get stuck.
+  - id: snooze_led_blink_on
+    type: bool
+    restore_value: no
+    initial_value: 'false'
   - id: siren_on
     type: bool
     restore_value: no
@@ -330,17 +336,21 @@ interval:
           if (id(siren_on) || id(timer_ringing).state) return;
           id(snooze_until) = 0;
           id(timer_ringing).turn_on();
-      # The refresh script only changes the light when the indicator state
-      # changes, so running it once per second does not reset the pulse.
+
+  # Independent LED clock: Snooze is indicated even before the deadline elapses,
+  # and can recover after another LED owner (speech, notification, siren) exits.
+  - interval: 750ms
+    then:
       - script.execute: refresh_snooze_led
 
 ############################
 # SCRIPTS
 ############################
 script:
-  # This is the only controller for the Snooze LED status. It checks the
-  # active effect before issuing a light command, preventing a once-per-second
-  # animation restart and preserving higher-priority LED indications.
+  # Explicit blink instead of an effect-state-dependent breathing animation.
+  # Effect state can remain selected even when another action turned the LED off.
+  # A 750ms tick alternates between visible amber and off; transitions to other
+  # activities release Snooze's ownership without altering their LED output.
   - id: refresh_snooze_led
     mode: restart
     then:
@@ -349,30 +359,41 @@ script:
             lambda: |-
               return id(snooze_until) != 0 && !id(siren_on) &&
                      !id(timer_ringing).state && !id(notification_ringing).state &&
-                     !id(voice_audio_active) && !id(va).is_running();
+                     !id(voice_audio_active);
           then:
             - if:
                 condition:
-                  lambda: |-
-                    return id(led_internal)->get_current_effect_index() !=
-                           id(led_internal)->get_effect_index("Snooze Pulse", sizeof("Snooze Pulse") - 1);
+                  lambda: return !id(snooze_led_blink_on);
                 then:
                   - light.turn_on:
                       id: led_internal
-                      effect: "Snooze Pulse"
-                      brightness: 30%
+                      effect: "None"
+                      brightness: 65%
                       red: 100%
                       green: 35%
                       blue: 0%
+                  - globals.set:
+                      id: snooze_led_blink_on
+                      value: "true"
+                else:
+                  - light.turn_off: led_internal
+                  - globals.set:
+                      id: snooze_led_blink_on
+                      value: "false"
           else:
-            # Do not turn off another indication that has already taken over.
+            # Shut off a previous amber flash only when no higher-priority
+            # indication is currently in control of the same physical LED.
             - if:
                 condition:
                   lambda: |-
-                    return id(led_internal)->get_current_effect_index() ==
-                           id(led_internal)->get_effect_index("Snooze Pulse", sizeof("Snooze Pulse") - 1);
+                    return id(snooze_led_blink_on) && !id(siren_on) &&
+                           !id(timer_ringing).state && !id(notification_ringing).state &&
+                           !id(voice_audio_active);
                 then:
                   - light.turn_off: led_internal
+            - globals.set:
+                id: snooze_led_blink_on
+                value: "false"
 
   # Triggered only by the Snooze wake word while a timer is actively ringing.
   - id: snooze_ring
@@ -1216,29 +1237,6 @@ light:
               increasing = false;
             } else if (fraction <= 0.0f) {
               fraction = 0.0f;
-              increasing = true;
-            }
-
-      # Low-brightness amber breathing while a timer is postponed.
-      # Approximately one full pulse every 3.3 seconds.
-      - addressable_lambda:
-          name: "Snooze Pulse"
-          update_interval: 50ms
-          lambda: |-
-            static float fraction = 0.05f;
-            static bool increasing = true;
-            const float step = 0.03f;
-            auto values = id(led_internal)->current_values;
-            float scale = fraction * values.get_brightness();
-            it[0].set_rgb(values.get_red() * 255.0f * scale,
-                          values.get_green() * 255.0f * scale,
-                          values.get_blue() * 255.0f * scale);
-            fraction += increasing ? step : -step;
-            if (fraction >= 1.0f) {
-              fraction = 1.0f;
-              increasing = false;
-            } else if (fraction <= 0.05f) {
-              fraction = 0.05f;
               increasing = true;
             }
 
