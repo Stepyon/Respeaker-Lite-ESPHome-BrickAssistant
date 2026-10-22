@@ -10,7 +10,7 @@ ported.
 
 1. Create a voice-assistant timer in Home Assistant.
 2. When BrickAssistant rings, say **"Snooze"**. Ringing stops and the same
-   ringtone resumes after the configured interval (default **9 minutes**).
+   ringtone resumes after the configured interval (default **5 minutes**).
 3. Say **"Stop"** during ringing to dismiss it rather than Snooze.
 4. Use these Home Assistant entities:
    - `switch.snooze_enabled`: enable/disable listening for Snooze (default on).
