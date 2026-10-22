@@ -1,0 +1,40 @@
+blueprint:
+  name: Play TTS URI via Media Player
+  description: Listen for a TTS URI event from an ESPHome device and play it using a selected media player.
+  domain: automation
+  input:
+    tts_device:
+      name: ESPHome TTS Device
+      description: Select the ESPHome device that sends the TTS URI event.
+      selector:
+        device:
+          entity:
+            - domain: assist_satellite
+          filter:
+            - manufacturer: formatbce
+              model: Respeaker Lite Satellite
+            - manufacturer: formatbce
+              model: Koala Satellite
+    target_media_player:
+      name: Target Media Player
+      description: Media player entity that should play the TTS URI.
+      selector:
+        entity:
+          domain: media_player
+
+trigger:
+  - platform: event
+    event_type: esphome.tts_uri
+    event_data:
+      device_id: !input tts_device
+
+action:
+  - service: media_player.play_media
+    target:
+      entity_id: !input target_media_player
+    data:
+      announce: true
+      media_content_type: music
+      media_content_id: "{{ trigger.event.data.uri }}"
+
+mode: single

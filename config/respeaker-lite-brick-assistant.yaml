@@ -2,8 +2,8 @@ esphome:
   name: respeaker-lite
   project:
     name: diycraic.brick_assistant
-    version: 2026.05.24
-  min_version: 2026.5.0
+    version: 2026.10.22
+  min_version: 2026.10.0
   friendly_name: ReSpeaker-lite
   platformio_options:
     board_build.flash_mode: dio
@@ -44,6 +44,12 @@ psram:
 network:
   enable_ipv6: true
 
+# Home Assistant supplies the wall clock used for persistent Snooze deadlines.
+# If time is not synchronised, a timer keeps ringing rather than being lost.
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
 logger:
   level: DEBUG
   initial_level: WARN
@@ -71,15 +77,18 @@ select:
         if (x == "Slightly sensitive") {
           id(okay_nabu).set_probability_cutoff(217);    // 0.85 -> 0.000 FAPH on DipCo (Manifest's default)
           id(hey_jarvis).set_probability_cutoff(247);   // 0.97 -> 0.563 FAPH on DipCo (Manifest's default)
-          id(hey_mycroft).set_probability_cutoff(253);  // 0.99 -> 0.567 FAPH on DipCo
+          id(hey_mycroft).set_probability_cutoff(253);
+          id(kenobi).set_probability_cutoff(217);  // 0.99 -> 0.567 FAPH on DipCo
         } else if (x == "Moderately sensitive") {
           id(okay_nabu).set_probability_cutoff(176);    // 0.69 -> 0.376 FAPH on DipCo
           id(hey_jarvis).set_probability_cutoff(235);   // 0.92 -> 0.939 FAPH on DipCo
-          id(hey_mycroft).set_probability_cutoff(242);  // 0.95 -> 1.502 FAPH on DipCo (Manifest's default)
+          id(hey_mycroft).set_probability_cutoff(242);
+          id(kenobi).set_probability_cutoff(176);  // 0.95 -> 1.502 FAPH on DipCo (Manifest's default)
         } else if (x == "Very sensitive") {
           id(okay_nabu).set_probability_cutoff(143);    // 0.56 -> 0.751 FAPH on DipCo
           id(hey_jarvis).set_probability_cutoff(212);   // 0.83 -> 1.502 FAPH on DipCo
-          id(hey_mycroft).set_probability_cutoff(237);  // 0.93 -> 1.878 FAPH on DipCo
+          id(hey_mycroft).set_probability_cutoff(237);
+          id(kenobi).set_probability_cutoff(143);  // 0.93 -> 1.878 FAPH on DipCo
         }
   - platform: logger
     id: logger_select
@@ -152,17 +161,17 @@ sendspin:
 
 audio_file:
   - id: siren_sound
-    file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/siren.wav
+    file: https://raw.githubusercontent.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/0ba9ed27476254b120961055951ff61d5286ccd3/sounds/siren.wav
   - id: timer_finished_sound
-    file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/timer_finished.flac
+    file: https://raw.githubusercontent.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/0ba9ed27476254b120961055951ff61d5286ccd3/sounds/timer_finished.flac
   - id: wake_word_triggered_sound
-    file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/wake_word_triggered.flac
+    file: https://raw.githubusercontent.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/0ba9ed27476254b120961055951ff61d5286ccd3/sounds/wake_word_triggered.flac
   - id: button_press_sound
-    file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/click.mp3
+    file: https://raw.githubusercontent.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/0ba9ed27476254b120961055951ff61d5286ccd3/sounds/click.mp3
   - id: notification_sound
-    file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/notification.mp3
+    file: https://raw.githubusercontent.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/0ba9ed27476254b120961055951ff61d5286ccd3/sounds/notification.mp3
   - id: connection_problem_sound
-    file: https://github.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/raw/refs/heads/BrickAssistant/sounds/connection_problem.mp3
+    file: https://raw.githubusercontent.com/Stepyon/Respeaker-Lite-ESPHome-BrickAssistant/0ba9ed27476254b120961055951ff61d5286ccd3/sounds/connection_problem.mp3
 
 ota:
   - platform: esphome
@@ -187,14 +196,14 @@ external_components:
   - source:
       type: git
       url: https://github.com/formatBCE/esphome
-      ref: respeaker_microphone
+      ref: 04a9f40154d2720bd90745f025f6a6deb50f5681
     components:
       - i2s_audio
     refresh: 0s
   - source:
       type: git
       url: https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration
-      ref: main
+      ref: 00131ff518b878413b5de7023b956766747ee600
     components: 
       - respeaker_lite
     refresh: 0s
@@ -250,6 +259,21 @@ globals:
     type: bool
     restore_value: no
     initial_value: "false"
+  - id: voice_audio_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  # Epoch deadline; persisted so rebooting during Snooze preserves the timer.
+  - id: snooze_until
+    type: time_t
+    restore_value: yes
+    initial_value: '0'
+  # Tracks only whether the Snooze controller last set the LED on. This flag
+  # never persists across reboot, so an interrupted flash cannot get stuck.
+  - id: snooze_led_blink_on
+    type: bool
+    restore_value: no
+    initial_value: 'false'
   - id: siren_on
     type: bool
     restore_value: no
@@ -267,10 +291,179 @@ globals:
     restore_value: no
     initial_value: '0.5'
 
+# Snooze follows the upstream timer behaviour (1-60 minutes, default 9).
+number:
+  - platform: template
+    id: snooze_minutes
+    name: "Snooze duration"
+    icon: mdi:alarm-snooze
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 5
+    min_value: 1
+    max_value: 60
+    step: 1
+    unit_of_measurement: min
+    mode: box
+
+button:
+  # During Snooze, Stop is deliberately disabled; cancel from Home Assistant.
+  - platform: template
+    id: snooze_cancel
+    name: "Cancel snooze"
+    icon: mdi:alarm-off
+    on_press:
+      - lambda: id(snooze_until) = 0;
+      - script.execute: refresh_snooze_led
+
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          if (id(snooze_until) == 0) return;
+          auto now = id(homeassistant_time).now();
+          if (!now.is_valid() || now.timestamp < id(snooze_until)) return;
+          // A reboot or network outage must not produce a very late ringtone.
+          const bool stale = (now.timestamp - id(snooze_until)) > 10 * 60;
+          if (stale) {
+            id(snooze_until) = 0;
+            ESP_LOGW("snooze", "Expired snoozed timer discarded after 10-minute grace period");
+            return;
+          }
+          // Do not override an active security siren or another ringing timer.
+          // The pending Snooze retries when that interruption is cleared.
+          if (id(siren_on) || id(timer_ringing).state) return;
+          id(snooze_until) = 0;
+          id(timer_ringing).turn_on();
+
+  # Independent LED clock: Snooze is indicated even before the deadline elapses,
+  # and can recover after another LED owner (speech, notification, siren) exits.
+  - interval: 750ms
+    then:
+      - script.execute: refresh_snooze_led
+
 ############################
 # SCRIPTS
 ############################
 script:
+  # Explicit blink instead of an effect-state-dependent breathing animation.
+  # Effect state can remain selected even when another action turned the LED off.
+  # A 750ms tick alternates between visible yellow and off; transitions to other
+  # activities release Snooze's ownership without altering their LED output.
+  - id: refresh_snooze_led
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(snooze_until) != 0 && !id(siren_on) &&
+                     !id(timer_ringing).state && !id(notification_ringing).state &&
+                     !id(va).is_running();
+          then:
+            - if:
+                condition:
+                  lambda: return !id(snooze_led_blink_on);
+                then:
+                  - light.turn_on:
+                      id: led_internal
+                      effect: "None"
+                      brightness: 65%
+                      red: 100%
+                      green: 100%
+                      blue: 0%
+                  - globals.set:
+                      id: snooze_led_blink_on
+                      value: "true"
+                else:
+                  - light.turn_off: led_internal
+                  - globals.set:
+                      id: snooze_led_blink_on
+                      value: "false"
+          else:
+            # Shut off a previous yellow flash only when no higher-priority
+            # indication is currently in control of the same physical LED.
+            - if:
+                condition:
+                  lambda: |-
+                    return id(snooze_led_blink_on) && !id(siren_on) &&
+                           !id(timer_ringing).state && !id(notification_ringing).state &&
+                           !id(va).is_running();
+                then:
+                  - light.turn_off: led_internal
+            - globals.set:
+                id: snooze_led_blink_on
+                value: "false"
+
+  # Triggered only by the Snooze wake word while a timer is actively ringing.
+  - id: snooze_ring
+    mode: single
+    then:
+      - if:
+          condition:
+            and:
+              - switch.is_on: timer_ringing
+              - switch.is_on: snooze_enabled
+              - lambda: return id(homeassistant_time).now().is_valid();
+          then:
+            - lambda: |-
+                const auto now = id(homeassistant_time).now();
+                id(snooze_until) = now.timestamp +
+                                   (time_t) id(snooze_minutes).state * 60;
+                ESP_LOGI("snooze", "Timer snoozed for %d minutes", (int) id(snooze_minutes).state);
+            - switch.turn_off: timer_ringing
+            - script.execute: refresh_snooze_led
+          else:
+            - logger.log:
+                level: WARN
+                format: "Snooze ignored: timer unavailable, Snooze disabled, or clock not set"
+
+  - id: refresh_media_ducking
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(voice_audio_active) || id(siren_on) ||
+                     id(timer_ringing).state || id(notification_ringing).state ||
+                     id(external_media_player).state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING;
+          then:
+            - mixer_speaker.apply_ducking:
+                id: media_mixing_input
+                decibel_reduction: 30
+                duration: 200ms
+          else:
+            - mixer_speaker.apply_ducking:
+                id: media_mixing_input
+                decibel_reduction: 0
+                duration: 500ms
+
+  - id: timer_playback
+    mode: restart
+    then:
+      - while:
+          condition:
+            switch.is_on: timer_ringing
+          then:
+            - script.execute:
+                id: play_sound
+                priority: true
+                sound_file: "timer_finished_sound"
+            - delay: 3s
+
+  - id: siren_playback
+    mode: restart
+    then:
+      - while:
+          condition:
+            switch.is_on: siren_ringing
+          then:
+            - script.execute:
+                id: play_sound
+                priority: true
+                sound_file: "siren_sound"
+            - delay: 6s
+
   # Script executed when we want to play sounds on the device.
   - id: play_sound
     parameters:
@@ -356,28 +549,35 @@ script:
   #   Becasue we want to stop the sequence if the TTS step is faster than that.
   #   This allows us to prevent having the deactivation of the stop word before its own activation.
   - id: activate_stop_word_once
+    mode: restart
     then:
-      - logger.log: "VA: activate_stop_word_once"
       - wait_until:
           condition:
             media_player.is_announcing:
               id: external_media_player
-      - delay: 1s
-      # Enable stop wake word
+          timeout: 8s
       - if:
           condition:
-            switch.is_off: timer_ringing
+            media_player.is_announcing:
+              id: external_media_player
           then:
-            - micro_wake_word.enable_model: stop
-            - wait_until:
-                not:
-                  media_player.is_announcing:
-                    id: external_media_player
+            - delay: 1s
             - if:
                 condition:
                   switch.is_off: timer_ringing
                 then:
-                  - micro_wake_word.disable_model: stop
+                  - micro_wake_word.enable_model: stop
+                  - wait_until:
+                      condition:
+                        not:
+                          media_player.is_announcing:
+                            id: external_media_player
+                      timeout: 60s
+                  - if:
+                      condition:
+                        switch.is_off: timer_ringing
+                      then:
+                        - micro_wake_word.disable_model: stop
 
   - id: long_press_delay
     mode: restart
@@ -435,6 +635,12 @@ script:
 # BINARY SENSORS (BUTTONS)
 ############################
 binary_sensor:
+  - platform: template
+    id: snooze_pending
+    name: "Snooze pending"
+    icon: mdi:alarm-snooze
+    lambda: return id(snooze_until) != 0;
+
   - platform: gpio
     id: user_button
     internal: true
@@ -577,20 +783,16 @@ media_player:
         - sendspin_media_source
     volume_increment: 0.05
     volume_min: 0.3
-    volume_max: 0.8
+    volume_max: 1.0
     on_announcement:
-      - mixer_speaker.apply_ducking:
-          id: media_mixing_input
-          decibel_reduction: 30
-          duration: 200ms
+      - script.execute: refresh_media_ducking
       - wait_until:
-          not:
-            media_player.is_announcing:
-              id: external_media_player
-      - mixer_speaker.apply_ducking:
-          id: media_mixing_input
-          decibel_reduction: 0
-          duration: 500ms
+          condition:
+            not:
+              media_player.is_announcing:
+                id: external_media_player
+          timeout: 90s
+      - script.execute: refresh_media_ducking
 
 ############################
 # MICRO WAKE WORD
@@ -606,7 +808,7 @@ micro_wake_word:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
       probability_cutoff: 0.7
       id: okay_nabu
-    - model: https://raw.githubusercontent.com/formatBCE/Respeaker-Lite-ESPHome-integration/refs/heads/main/microwakeword/models/v2/kenobi.json
+    - model: https://raw.githubusercontent.com/formatBCE/Respeaker-Lite-ESPHome-integration/00131ff518b878413b5de7023b956766747ee600/microwakeword/models/v2/kenobi.json
       id: kenobi
       probability_cutoff: 0.7
     - model: hey_jarvis
@@ -619,6 +821,10 @@ micro_wake_word:
       probability_cutoff: 0.2
       id: stop
       internal: true
+    # Upstream 2026.10.0 model, loaded only while a timer is ringing.
+    - model: https://raw.githubusercontent.com/formatBCE/Respeaker-Lite-ESPHome-integration/00131ff518b878413b5de7023b956766747ee600/microwakeword/models/v2/snooze.json
+      id: snooze
+      internal: true
   vad:
     probability_cutoff: 0.1
   on_wake_word_detected:
@@ -628,69 +834,85 @@ micro_wake_word:
     - script.execute:
         id: send_wake_word_event
         wake_word: !lambda return wake_word;
+    # Ringing timers handle Snooze and Stop without starting a voice session.
     - if:
         condition:
-          voice_assistant.is_running:
-        then:
-          voice_assistant.stop:
-    - if:
-        condition:
-          - switch.is_on: timer_ringing
-        then:
-          - switch.turn_off: timer_ringing
-    - if:
-        condition:
-          media_player.is_announcing:
-            id: external_media_player
-        then:
-          - media_player.stop:
-              id: external_media_player
-              announcement: true
-    - if:
-        condition:
-          lambda: return wake_word != "Stop";
+          switch.is_on: timer_ringing
         then:
           - if:
               condition:
-                lambda: |-
-                  return id(va_connected);
+                lambda: return wake_word == "Snooze";
               then:
-                - light.turn_on:
-                    id: led_internal
-                    brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
-                    red: 50%
-                    green: 100%
-                    blue: 100%
-                    effect: "Slow Pulse"
-                - script.execute:
-                    id: play_sound
-                    priority: true
-                    sound_file: "wake_word_triggered_sound"
-                - delay: 300ms
-                - wait_until:
-                    not:
-                      media_player.is_announcing: 
-                        id: external_media_player
-                - voice_assistant.start:
-                    wake_word: !lambda return wake_word;
-                    silence_detection: true
+                - script.execute: snooze_ring
               else:
-                - delay: 1s
-                - script.execute:
-                    id: play_sound
-                    priority: true
-                    sound_file: "connection_problem_sound"
+                - switch.turn_off: timer_ringing
         else:
-          - logger.log: "Stop wake word was used!"
-          - light.turn_on:
-              id: led_internal
-              effect: "Timer Pulse"
-              brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
-              red: 100%
-              green: 0%
-              blue: 0%
-          - delay: 300ms
-          - light.turn_off: led_internal
+          # Stray Snooze recognitions must never start the voice assistant.
+          - if:
+              condition:
+                lambda: return wake_word != "Snooze";
+              then:
+                - if:
+                    condition:
+                      voice_assistant.is_running:
+                    then:
+                      voice_assistant.stop:
+                - if:
+                    condition:
+                      media_player.is_announcing:
+                        id: external_media_player
+                    then:
+                      - media_player.stop:
+                          id: external_media_player
+                          announcement: true
+                - if:
+                    condition:
+                      lambda: return wake_word != "Stop";
+                    then:
+                      - if:
+                          condition:
+                            lambda: |-
+                              return id(va_connected);
+                          then:
+                            - light.turn_on:
+                                id: led_internal
+                                brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
+                                red: 50%
+                                green: 100%
+                                blue: 100%
+                                effect: "Slow Pulse"
+                            - script.execute:
+                                id: play_sound
+                                priority: true
+                                sound_file: "wake_word_triggered_sound"
+                            - delay: 300ms
+                            - wait_until:
+                                condition:
+                                  not:
+                                    media_player.is_announcing:
+                                      id: external_media_player
+                                timeout: 5s
+                            - voice_assistant.start:
+                                wake_word: !lambda return wake_word;
+                                silence_detection: true
+                          else:
+                            - delay: 1s
+                            - script.execute:
+                                id: play_sound
+                                priority: true
+                                sound_file: "connection_problem_sound"
+                    else:
+                      - logger.log: "Stop wake word was used!"
+                      - light.turn_on:
+                          id: led_internal
+                          effect: "Timer Pulse"
+                          brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
+                          red: 100%
+                          green: 0%
+                          blue: 0%
+                      - delay: 300ms
+                      - light.turn_off: led_internal
+
 
 ############################
 # VOICE ASSISTANT
@@ -761,10 +983,11 @@ voice_assistant:
           - switch.is_off: siren_ringing
         then:
           - logger.log: "VA: on_start"
-          - mixer_speaker.apply_ducking:
-              id: media_mixing_input
-              decibel_reduction: 30  # Number of dB quieter; higher implies more quiet, 0 implies full volume
-              duration: 0.0s         # The duration of the transition (default is no transition)
+          - globals.set:
+              id: voice_audio_active
+              value: "true"
+          - script.execute: refresh_media_ducking
+          - script.execute: refresh_snooze_led
           - light.turn_on:
               id: led_internal
               brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
@@ -782,53 +1005,62 @@ voice_assistant:
               not:
                 voice_assistant.is_running
           - logger.log: "VA: on_end"
-          - mixer_speaker.apply_ducking:
-              id: media_mixing_input
-              decibel_reduction: 0
-              duration: 1.0s
-          # - script.stop: activate_stop_word_once
+          - globals.set:
+              id: voice_audio_active
+              value: "false"
+          - script.execute: refresh_media_ducking
+          - script.stop: activate_stop_word_once
           - if:
               condition:
                 - switch.is_off: timer_ringing
               then:
                 - micro_wake_word.disable_model: stop
                 - light.turn_off: led_internal
+          - script.execute: refresh_snooze_led
 
   on_timer_tick:
     - if:
         condition:
-          not:
-            voice_assistant.is_running
+          and:
+            - not:
+                voice_assistant.is_running
+            # Timer tick animations must not replace the Snooze indicator.
+            - lambda: return id(snooze_until) == 0;
         then:
           - lambda: |-
               id(timer_led_pulse).execute();
 
   on_timer_finished:
+    # A new genuine timer supersedes any earlier pending Snooze.
+    - lambda: id(snooze_until) = 0;
     - switch.turn_on: timer_ringing
-    - while:
-        condition:
-          switch.is_on: timer_ringing
-        then:
-          - script.execute:
-              id: play_sound
-              priority: true
-              sound_file: "timer_finished_sound"              
-          - wait_until:
-              media_player.is_announcing: 
-                id: external_media_player
-          - wait_until:
-              not:
-                media_player.is_announcing: 
-                  id: external_media_player
-    - light.turn_off: led_internal
 
   on_timer_cancelled:
     - light.turn_off: led_internal
+    - script.execute: refresh_snooze_led
 
 ############################
 # SWITCHES (SIREN / TIMER)
 ############################
 switch:
+  - platform: template
+    id: snooze_enabled
+    name: "Snooze enabled"
+    icon: mdi:alarm-snooze
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - if:
+          condition:
+            switch.is_on: timer_ringing
+          then:
+            - micro_wake_word.enable_model: snooze
+    on_turn_off:
+      - lambda: id(snooze_until) = 0;
+      - script.execute: refresh_snooze_led
+      - micro_wake_word.disable_model: snooze
+
   - platform: template
     id: siren_ringing
     name: "Siren Ring"
@@ -842,6 +1074,7 @@ switch:
           id: siren_on
           value: "true"
       - lambda: id(siren_ringing).publish_state(true);
+      - script.execute: refresh_snooze_led
       - if:
           condition:
             - switch.is_on: timer_ringing
@@ -856,26 +1089,15 @@ switch:
           id: external_media_player
           volume: 1.0
       - script.execute: siren_autooff_delay
-      - while:
-          condition:
-            switch.is_on: siren_ringing
-          then:
-            - light.turn_on:
-                id: led_internal
-                effect: "Siren Pulse"
-                brightness: 100%
-                red: 100%
-                green: 0%
-                blue: 0%
-            - script.execute:
-                id: play_sound
-                priority: true
-                sound_file: "siren_sound" 
-            - delay: 6s
-            - wait_until:
-                not:
-                  media_player.is_playing: 
-                    id: external_media_player
+      - light.turn_on:
+          id: led_internal
+          effect: "Siren Pulse"
+          brightness: 100%
+          red: 100%
+          green: 0%
+          blue: 0%
+      - script.execute: siren_playback
+      - script.execute: refresh_media_ducking
 
     turn_off_action:
       - globals.set:
@@ -883,16 +1105,14 @@ switch:
           value: "false"
       - lambda: id(siren_ringing).publish_state(false);
       - light.turn_off: led_internal
+      - script.execute: refresh_snooze_led
       - script.stop: siren_autooff_delay
-      - if:
-          condition:
-            media_player.is_playing:
-              id: external_media_player
-          then:
-            media_player.stop:
-              announcement: false
-              id: external_media_player
+      - script.stop: siren_playback
+      - media_player.stop:
+          id: external_media_player
+          announcement: true
       - script.execute: restore_volume
+      - script.execute: refresh_media_ducking
 
   - platform: template
     name: "Timer Ring"
@@ -901,11 +1121,14 @@ switch:
     restore_mode: ALWAYS_OFF
 
     on_turn_on:
-      - mixer_speaker.apply_ducking:
-          id: media_mixing_input
-          decibel_reduction: 15
-          duration: 200ms
-      - lambda: id(stop).enable();
+      - script.execute: refresh_snooze_led
+      - script.execute: refresh_media_ducking
+      - micro_wake_word.enable_model: stop
+      - if:
+          condition:
+            switch.is_on: snooze_enabled
+          then:
+            - micro_wake_word.enable_model: snooze
       - light.turn_on:
           id: led_internal
           effect: "Fast Pulse"
@@ -914,24 +1137,12 @@ switch:
           green: 100%
           blue: 100%
       - script.execute: timer_autooff_delay
-      - while:
-          condition:
-            switch.is_on: timer_ringing
-          then:
-            - script.execute:
-                id: play_sound
-                priority: true
-                sound_file: "timer_finished_sound" 
-            - wait_until:
-                media_player.is_announcing: 
-                  id: external_media_player
-            - wait_until:
-                not:
-                  media_player.is_announcing: 
-                    id: external_media_player
+      - script.execute: timer_playback
 
     on_turn_off:
+      - script.stop: timer_playback
       - micro_wake_word.disable_model: stop
+      - micro_wake_word.disable_model: snooze
       - light.turn_off: led_internal
       - script.stop: timer_autooff_delay
       # Stop any current announcement (ie: stop the timer ring mid playback)
@@ -943,10 +1154,8 @@ switch:
             media_player.stop:
               announcement: true
               id: external_media_player
-      - mixer_speaker.apply_ducking:
-          id: media_mixing_input
-          decibel_reduction: 0
-          duration: 1.0s
+      - script.execute: refresh_media_ducking
+      - script.execute: refresh_snooze_led
 
   - platform: template
     id: notification_ringing
@@ -955,10 +1164,8 @@ switch:
     internal: false
     restore_mode: ALWAYS_OFF
     on_turn_on:
-      - mixer_speaker.apply_ducking:
-          id: media_mixing_input
-          decibel_reduction: 15
-          duration: 200ms
+      - script.execute: refresh_snooze_led
+      - script.execute: refresh_media_ducking
       - light.turn_on:
           id: led_internal
           brightness: !lambda "return max(id(led).current_values.get_brightness(), 0.2f);"
@@ -971,20 +1178,22 @@ switch:
           priority: true
           sound_file: "notification_sound" 
       - wait_until:
-          media_player.is_announcing: 
-            id: external_media_player
-      - wait_until:
-          not:
-            media_player.is_announcing: 
+          condition:
+            media_player.is_announcing:
               id: external_media_player
+          timeout: 5s
+      - wait_until:
+          condition:
+            not:
+              media_player.is_announcing:
+                id: external_media_player
+          timeout: 30s
       - switch.turn_off: notification_ringing
     
     on_turn_off:
       - light.turn_off: led_internal
-      - mixer_speaker.apply_ducking:
-          id: media_mixing_input
-          decibel_reduction: 0
-          duration: 1.0s
+      - script.execute: refresh_media_ducking
+      - script.execute: refresh_snooze_led
 
 ############################
 # LED(s)
@@ -1126,7 +1335,7 @@ respeaker_lite:
     internal: false
     id: firmware_version
   firmware:
-    url: https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration/raw/refs/heads/main/respeaker_lite_i2s_dfu_firmware_48k_v1.1.0.bin
+    url: https://raw.githubusercontent.com/formatBCE/Respeaker-Lite-ESPHome-integration/00131ff518b878413b5de7023b956766747ee600/respeaker_lite_i2s_dfu_firmware_48k_v1.1.0.bin
     version: "1.1.0"
     md5: 9297155d1bf3eb21a9d4db52a89ea0c6
     on_begin:
