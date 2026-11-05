@@ -37,6 +37,50 @@ GitHub Actions pip-cache keying.
 - Reboot during an active timer or siren and check the defined OFF recovery.
 - Observe heap, PSRAM and loop-time stability after an hour of mixed playback.
 
+## Investigating a sudden volume change
+
+BrickAssistant's `external_media_player` uses one persistent media-player volume
+for music and announcements in ESPHome 2026.10.0. Its `volume_min: 0.3` also
+remaps nonzero volume to a fairly strong output: a 30% Home Assistant volume
+setting corresponds to 51% at the audio output. This scaling alone is not
+a change to the Home Assistant volume slider.
+
+The only BrickAssistant path intentionally setting 100% volume is Siren Ring.
+Its previous 500 ms delayed ON action could leave the player at 100% if the
+siren was stopped before the delay completed, or overwrite its saved level if
+an ON action ran again. The guarded siren implementation captures volume once,
+before stopping audio or waiting, and only applies the siren volume when the
+siren remains active. Its OFF action restores the saved level once.
+
+The firmware now logs volume changes through `speaker_source.on_volume`:
+- `audio_volume` WARN: volume rose by more than 15 percentage points outside
+  a siren. These warnings are visible with the default WARN logging level.
+- `audio_volume` INFO: all other player-volume changes; enable INFO logging
+  through the Logger Level select if needed.
+
+If normal TTS causes a jump, check the Home Assistant `Media Player`
+`volume_level` attribute immediately before and after. If the attribute
+actually changes, inspect `media_player.volume_set` automations, Music
+Assistant/Sendspin grouping, and any announcement scripts. ESPHome's Sendspin
+media source can request global player-volume changes. The `on_volume` event
+indicates a volume setter ran, but cannot by itself identify which caller.
+
+If the level remains the same while the sound is louder, check audio content
+loudness, mixer ducking and the configured `volume_min` remapping.
+
+### Hardware regression tests
+
+- Start with a player volume of 20%, activate Siren Ring, and stop it after
+  100 ms (before the 500 ms delay). Verify the volume stays at 20%.
+- With 20% volume, let the siren play and stop normally; verify restoration
+  to 20%.
+- Reissue Siren Ring ON while it is already ringing; stop it and confirm it
+  restores the initial level rather than 100%.
+- Run ordinary Home Assistant TTS announcements repeatedly, with and without
+  Sendspin media active; watch the player volume level and `audio_volume` logs.
+- Verify normal volume-up/down, timer/Snooze audio, notifications and media
+  ducking are otherwise unchanged.
+
 ## Release process
 
 The firmware installer manifest currently targets the **2026.04.25** tested
