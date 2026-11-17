@@ -290,6 +290,18 @@ globals:
     type: float
     restore_value: no
     initial_value: '0.5'
+  # Set only after capturing the real volume before a siren; prevents
+  # repeated siren-on actions from replacing it with the forced 100% level.
+  - id: siren_volume_saved
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Diagnostic only; track the previously reported media-player level to
+  # identify unexpected changes from HA services or Sendspin.
+  - id: last_observed_volume
+    type: float
+    restore_value: no
+    initial_value: '-1.0'
 
 # Snooze follows the upstream timer behaviour (1-60 minutes, default 9).
 number:
@@ -618,18 +630,27 @@ script:
           then:
             - switch.turn_off: siren_ringing
 
+  # Save before any asynchronous siren actions or forced volume change.
+  # Calling Siren Ring ON again while it is already running must not capture
+  # the siren's 100% volume as the user's preferred level.
   - id: save_volume
     then:
       - lambda: |-
+          if (id(siren_volume_saved)) return;
           id(saved_volume) = id(external_media_player).volume;
+          id(siren_volume_saved) = true;
+          ESP_LOGI("audio_volume", "Siren volume saved at %.0f%%", id(saved_volume) * 100.0f);
 
   - id: restore_volume
     then:
       - lambda: |-
-          float volume = id(saved_volume);
+          if (!id(siren_volume_saved)) return;
+          const float volume = id(saved_volume);
+          id(siren_volume_saved) = false;
           auto call = id(external_media_player).make_call();
           call.set_volume(volume);
           call.perform();
+          ESP_LOGI("audio_volume", "Siren volume restored to %.0f%%", volume * 100.0f);
 
 ############################
 # BINARY SENSORS (BUTTONS)
@@ -784,6 +805,26 @@ media_player:
     volume_increment: 0.05
     volume_min: 0.3
     volume_max: 1.0
+    # The speaker_source player shares its volume between media and all
+    # announcements. Any unexpected change seen here comes from a volume call
+    # (including a connected Sendspin volume request), not simple playback.
+    on_volume:
+      - lambda: |-
+          const float previous = id(last_observed_volume);
+          const bool unexpected_jump = previous >= 0.0f &&
+                                       x > previous + 0.15f && !id(siren_on);
+          if (unexpected_jump) {
+            ESP_LOGW("audio_volume",
+                     "Volume jumped from %.0f%% to %.0f%% (player=%s, siren=off)",
+                     previous * 100.0f, x * 100.0f,
+                     media_player::media_player_state_to_string(id(external_media_player).state));
+          } else {
+            ESP_LOGI("audio_volume", "Volume now %.0f%% (player=%s, siren=%s)",
+                     x * 100.0f,
+                     media_player::media_player_state_to_string(id(external_media_player).state),
+                     id(siren_on) ? "on" : "off");
+          }
+          id(last_observed_volume) = x;
     on_announcement:
       - script.execute: refresh_media_ducking
       - wait_until:
@@ -1070,6 +1111,9 @@ switch:
     lambda: |-
       return id(siren_on);
     turn_on_action:
+      # Capture once, before stopping playback or waiting. The original
+      # volume must survive repeated ON calls and cancellation during delay.
+      - script.execute: save_volume
       - globals.set:
           id: siren_on
           value: "true"
@@ -1084,20 +1128,26 @@ switch:
       - media_player.stop:
           id: external_media_player
       - delay: 500ms
-      - script.execute: save_volume
-      - media_player.volume_set:
-          id: external_media_player
-          volume: 1.0
-      - script.execute: siren_autooff_delay
-      - light.turn_on:
-          id: led_internal
-          effect: "Siren Pulse"
-          brightness: 100%
-          red: 100%
-          green: 0%
-          blue: 0%
-      - script.execute: siren_playback
-      - script.execute: refresh_media_ducking
+      # The OFF action can execute while the 500ms delay is outstanding.
+      # Without this guard the old ON action can restore 100% volume after
+      # the siren is already stopped, leaving following TTS very loud.
+      - if:
+          condition:
+            lambda: return id(siren_on);
+          then:
+            - media_player.volume_set:
+                id: external_media_player
+                volume: 1.0
+            - script.execute: siren_autooff_delay
+            - light.turn_on:
+                id: led_internal
+                effect: "Siren Pulse"
+                brightness: 100%
+                red: 100%
+                green: 0%
+                blue: 0%
+            - script.execute: siren_playback
+            - script.execute: refresh_media_ducking
 
     turn_off_action:
       - globals.set:
