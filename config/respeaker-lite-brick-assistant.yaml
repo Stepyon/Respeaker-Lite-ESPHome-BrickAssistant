@@ -341,6 +341,29 @@ button:
       - lambda: id(snooze_until) = 0;
       - script.execute: refresh_snooze_led
 
+  # A/B test for streaming-induced Wi-Fi latency: pausing the inference
+  # workload without changing the Wi-Fi driver or interrupting the media path.
+  # Wake words are deliberately unavailable until resumed or the API reconnects.
+  - platform: template
+    name: "Diagnostic pause wake words"
+    entity_category: diagnostic
+    icon: mdi:microphone-off
+    on_press:
+      - micro_wake_word.stop:
+      - logger.log:
+          level: WARN
+          format: "DIAGNOSTIC: wake-word inference paused (voice wake commands unavailable)"
+
+  - platform: template
+    name: "Diagnostic resume wake words"
+    entity_category: diagnostic
+    icon: mdi:microphone
+    on_press:
+      - micro_wake_word.start:
+      - logger.log:
+          level: WARN
+          format: "DIAGNOSTIC: wake-word inference resumed"
+
 interval:
   - interval: 1s
     then:
