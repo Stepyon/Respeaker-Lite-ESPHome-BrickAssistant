@@ -181,6 +181,10 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   fast_connect: true
+  # Audio-streaming experiment: ESPHome normally uses LIGHT modem sleep on
+  # ESP32, which can defer received packets. Keep output_power unchanged so
+  # this experiment isolates the power-save setting.
+  power_save_mode: NONE
   on_connect:
     - logger.log: "wifi connected"
   on_disconnect:
@@ -1419,18 +1423,27 @@ respeaker_lite:
       - light.turn_off:
           id: led_internal
 
-# debug:
-#   update_interval: 5s
+# Low-overhead runtime diagnostics for intermittent music/radio stalls.
+# Disable logging verbosity escalation during playback unless collecting logs.
+debug:
+  update_interval: 5s
 
-# sensor:
-#   - platform: debug
-#     free:
-#       name: "Heap Free"
-#     block:
-#       name: "Heap Max Block"
-#     loop_time:
-#       name: "Loop Time"
-#     psram:
-#       name: "Free PSRAM"
-#     cpu_frequency:
-#       name: "CPU Frequency"
+sensor:
+  - platform: wifi_signal
+    name: "WiFi RSSI"
+    entity_category: diagnostic
+    update_interval: 5s
+
+  - platform: debug
+    free:
+      name: "Free Heap"
+      entity_category: diagnostic
+    block:
+      name: "Largest Free Heap Block"
+      entity_category: diagnostic
+    loop_time:
+      name: "Longest Loop Time"
+      entity_category: diagnostic
+    psram:
+      name: "Free PSRAM"
+      entity_category: diagnostic
