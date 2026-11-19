@@ -207,12 +207,8 @@ external_components:
       ref: 919b4aceae49f64d0af874dce7d3b1750e7734ef
     components:
       - decimator
-    refresh: 0s
-  - source:
-      type: git
-      url: https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration
-      ref: 00131ff518b878413b5de7023b956766747ee600
-    components:
+      # The old ReSpeaker-Lite integration uses str_sprintf(), removed from
+      # ESPHome 2026.11. The newer upstream component uses std::snprintf().
       - respeaker_lite
     refresh: 0s
 
