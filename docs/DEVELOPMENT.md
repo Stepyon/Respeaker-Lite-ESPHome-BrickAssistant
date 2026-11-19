@@ -22,6 +22,12 @@ configuration uses ESPHome's built-in I2S implementation together with the
 standalone `decimator` component pinned from the upstream ReSpeaker
 integration at commit `919b4aceae49f64d0af874dce7d3b1750e7734ef`.
 
+The same upstream revision also supplies the `respeaker_lite` XMOS component.
+The older pinned ReSpeaker integration called `str_sprintf()`, removed from
+ESPHome 2026.11, and failed compilation in `dfu_get_version_()`. The updated
+component uses standard `std::snprintf()` and retains the existing XMOS
+firmware configuration.
+
 `i2s_mics_raw` is the existing 48 kHz stereo I2S microphone. The decimator
 exposes the original `i2s_mics` ID at 16 kHz with channel 0 for Assist and
 channel 1 for wake words. No change to the existing media speaker settings
