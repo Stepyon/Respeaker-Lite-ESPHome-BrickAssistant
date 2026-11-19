@@ -88,9 +88,12 @@ words** and observe again. Repeat several times under otherwise identical
 conditions.
 
 - **Ping/stuttering consistently improves only while paused:** strong
-  evidence of CPU/task priority contention with mWW and the audio/network
-  pipeline. Investigate task affinity, inference load and decoder/mixer
-  scheduling rather than increasing network buffer sizes blindly.
+  evidence of scheduling contention involving the microphone/wake-word
+  pipeline and audio/network tasks. Stopping mWW can also stop the I2S
+  microphone capture task if nothing else has subscribed to its audio;
+  this test therefore **does not distinguish inference from mic capture**.
+  Investigate core affinity, task priorities, inference load and DMA capture
+  before increasing network buffer sizes blindly.
 - **No change:** wake-word inference probably is not the dominant cause.
   Compare an internet radio source with LAN-hosted media and Sendspin/Music
   Assistant, inspect AP retry and PHY-rate statistics, and check router/client
