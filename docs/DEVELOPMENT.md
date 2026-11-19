@@ -1,10 +1,33 @@
 # Development, validation and release
 
 The source of truth is `config/respeaker-lite-brick-assistant.yaml`. The tested
-CI and local development ESPHome version is **2026.10.0**, pinned in
-`requirements-ci.txt`. The YAML's `min_version: 2026.10.0` is a lower-bound
+CI and local development ESPHome version is **2026.11.0**, pinned in
+`requirements-ci.txt`. The YAML's `min_version: 2026.11.0` is a lower-bound
 compatibility declaration, not the CI build version. Update the minimum only
 when a required ESPHome feature makes older versions incompatible.
+
+## ESPHome 2026.11 I2S compatibility
+
+ESPHome 2026.11 changed the I2S speaker DAC interface from a single
+`audio_dac_` member to multiple `audio_dacs_`. The old pinned
+`formatBCE/esphome` I2S override fails C++ compilation because it references
+the removed member. No change to compiler settings can make that fork safe
+without updating it.
+
+The ReSpeaker XMOS still clocks its microphones and speaker at **48 kHz**.
+The old custom fork also decimated both microphone channels by keeping one
+of every three samples for the **16 kHz** voice-assistant and micro-wake-word
+paths. Removing the fork alone would discard that adaptation. The new
+configuration uses ESPHome's built-in I2S implementation together with the
+standalone `decimator` component pinned from the upstream ReSpeaker
+integration at commit `919b4aceae49f64d0af874dce7d3b1750e7734ef`.
+
+`i2s_mics_raw` is the existing 48 kHz stereo I2S microphone. The decimator
+exposes the original `i2s_mics` ID at 16 kHz with channel 0 for Assist and
+channel 1 for wake words. No change to the existing media speaker settings
+or volume limits is intended. Verify speaker output, both microphone channels,
+wake word sensitivity, music/radio streaming and full-duplex behaviour on
+hardware after upgrading.
 
 ## Local development
 
@@ -40,7 +63,7 @@ GitHub Actions pip-cache keying.
 ## Investigating a sudden volume change
 
 BrickAssistant's `external_media_player` uses one persistent media-player volume
-for music and announcements in ESPHome 2026.10.0. Its `volume_min: 0.3` also
+for music and announcements in ESPHome 2026.11.0. Its `volume_min: 0.3` also
 remaps nonzero volume to a fairly strong output: a 30% Home Assistant volume
 setting corresponds to 51% at the audio output. This scaling alone is not
 a change to the Home Assistant volume slider.
