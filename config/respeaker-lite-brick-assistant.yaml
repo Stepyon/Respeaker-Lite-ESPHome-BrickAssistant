@@ -3,7 +3,7 @@ esphome:
   project:
     name: diycraic.brick_assistant
     version: 2026.10.22
-  min_version: 2026.10.0
+  min_version: 2026.11.0
   friendly_name: ReSpeaker-lite
   platformio_options:
     board_build.flash_mode: dio
@@ -197,18 +197,18 @@ wifi:
 captive_portal:
 
 external_components:
+  # ESPHome 2026.11 ships the I2S driver, and the old custom i2s_audio
+  # override is incompatible with its multiple-DAC speaker interface.
+  # The decimator preserves the ReSpeaker XMOS 48kHz -> 16kHz mic path
+  # without replacing ESPHome's I2S speaker/microphone implementation.
   - source:
       type: git
-      url: https://github.com/formatBCE/esphome
-      ref: 04a9f40154d2720bd90745f025f6a6deb50f5681
+      url: https://github.com/formatBCE/Respeaker-ESPHome-integration
+      ref: 919b4aceae49f64d0af874dce7d3b1750e7734ef
     components:
-      - i2s_audio
-    refresh: 0s
-  - source:
-      type: git
-      url: https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration
-      ref: 00131ff518b878413b5de7023b956766747ee600
-    components: 
+      - decimator
+      # The old ReSpeaker-Lite integration uses str_sprintf(), removed from
+      # ESPHome 2026.11. The newer upstream component uses std::snprintf().
       - respeaker_lite
     refresh: 0s
 
@@ -247,8 +247,9 @@ i2c:
     frequency: 400kHz
 
 microphone:
+  # The XMOS outputs at 48 kHz. Keep both processed channels intact.
   - platform: i2s_audio
-    id: i2s_mics
+    id: i2s_mics_raw
     i2s_din_pin: GPIO44
     adc_type: external
     pdm: false
@@ -257,6 +258,13 @@ microphone:
     i2s_mode: secondary
     i2s_audio_id: i2s_input
     channel: stereo
+  # 16 kHz interface for the existing VA (channel 0) and wake word (1).
+  # Same 1-in-3 decimation as the old formatBCE I2S fork.
+  - platform: decimator
+    id: i2s_mics
+    microphone:
+      microphone: i2s_mics_raw
+      channels: [0, 1]
 
 globals:
   - id: va_connected
