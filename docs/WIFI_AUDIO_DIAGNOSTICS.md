@@ -69,6 +69,42 @@ without running the audio pipeline, that decreases confidence in an
 audio-task starvation explanation. Compare results from radio streaming
 versus LAN-hosted media to distinguish WAN/streaming-server problems.
 
+## Wake-word processing A/B test (optional diagnostic PR)
+
+To test whether voice wake-word inference is starving Wi-Fi or audio tasks
+without changing RF parameters, the companion diagnostic branch adds two
+Home Assistant buttons:
+
+- **Diagnostic pause wake words**: stops `micro_wake_word` inference;
+  wake-word voice commands will not work until resumed or the Home Assistant
+  API reconnects. Does **not** stop current music/radio playback.
+- **Diagnostic resume wake words**: restarts the wake-word engine.
+
+Use a PC on **wired Ethernet** if possible. Start continuous pings to the
+device and to the router in separate terminals. While radio/music is playing
+and the device ping is bad, press **Diagnostic pause wake words**. Observe
+the next ~30 seconds of ping and music, then press **Diagnostic resume wake
+words** and observe again. Repeat several times under otherwise identical
+conditions.
+
+- **Ping/stuttering consistently improves only while paused:** strong
+  evidence of CPU/task priority contention with mWW and the audio/network
+  pipeline. Investigate task affinity, inference load and decoder/mixer
+  scheduling rather than increasing network buffer sizes blindly.
+- **No change:** wake-word inference probably is not the dominant cause.
+  Compare an internet radio source with LAN-hosted media and Sendspin/Music
+  Assistant, inspect AP retry and PHY-rate statistics, and check router/client
+  pings. As a subsequent **separate** experiment, try a less restricted
+  `wifi.output_power` than the existing 12.5 dBm.
+- **Both router and device ping spike simultaneously:** start with the PC
+  network connection or access point, not the ESP32 firmware.
+
+RSSI measures received strength at the ESP; it does not reveal uplink
+retransmissions, AP airtime congestion, router queueing or FreeRTOS task CPU
+usage. A 17 ms ESPHome main-loop measurement does not rule out these problems.
+
+The buttons are diagnostic tools, **not intended for the release firmware**.
+
 ## Follow-up decision
 
 - **Improved with NONE:** consider carrying `power_save_mode: NONE` to
